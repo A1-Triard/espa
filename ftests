@@ -6,16 +6,20 @@ if [ \! -e "Data Files/Aleanne Armor and Clothes 1+2.esp" ]; then
   wget -O ale-clothing-v1-1c.7z 'http://www.fullrest.ru/files/ale-clothing-v1-1c/files?fid=2379' || exit 1
   7z x ale-clothing-v1-1c.7z || exit 1
 fi
-if [ \! -e Morrowind.esm ]; then
-  echo "Put Morrowind.esm into test_data"
+if [ \! -e "Data Files/TravelingMerchants-1.2_1C.esp" ]; then
+  wget -O TravelingMerchants-1.2_1C.rar 'http://www.fullrest.ru/uploads/files/TravelingMerchants-1.2_1C.rar' || exit 1
+  unrar x -y TravelingMerchants-1.2_1C.rar || exit 1
+fi
+if [ \! -e "Data Files/Morrowind.esm" ]; then
+  echo "Put Morrowind.esm into test_data/Data Files"
   exit 1
 fi
-if [ \! -e Tribunal.esm ]; then
-  echo "Put Tribunal.esm into test_data"
+if [ \! -e "Data Files/Tribunal.esm" ]; then
+  echo "Put Tribunal.esm into test_data/Data Files"
   exit 1
 fi
-if [ \! -e Bloodmoon.esm ]; then
-  echo "Put Bloodmoon.esm into test_data"
+if [ \! -e "Data Files/Bloodmoon.esm" ]; then
+  echo "Put Bloodmoon.esm into test_data/Data Files"
   exit 1
 fi
 cd ..
@@ -28,7 +32,15 @@ mv "${test_file}" "${test_file}.test"
 stack exec -- espa -v "${test_file}.test" || exit 1
 cmp "${test_file}.test.esp" "${test_file}.esp" || exit 1
 
-test_file="test_data/Morrowind"
+test_file="test_data/Data Files/TravelingMerchants-1.2_1C"
+echo "${test_file}.esp"
+rm -rf "${test_file}" "${test_file}.test.esp" "${test_file}.test"
+stack exec -- espa -vad "${test_file}.esp" || exit 1
+mv "${test_file}" "${test_file}.test"
+stack exec -- espa -v "${test_file}.test" || exit 1
+cmp "${test_file}.test.esp" "${test_file}.esp" || exit 1
+
+test_file="test_data/Data Files/Morrowind"
 echo "${test_file}.esm"
 rm -rf "${test_file}" "${test_file}.test.esm" "${test_file}.test"
 stack exec -- espa -vad "${test_file}.esm" || exit 1
@@ -36,7 +48,7 @@ mv "${test_file}" "${test_file}.test"
 stack exec -- espa -v "${test_file}.test" || exit 1
 cmp "${test_file}.test.esm" "${test_file}.esm" || exit 1
 
-test_file="test_data/Tribunal"
+test_file="test_data/Data Files/Tribunal"
 echo "${test_file}.esm"
 rm -rf "${test_file}" "${test_file}.test.esm" "${test_file}.test"
 stack exec -- espa -vad "${test_file}.esm" || exit 1
@@ -44,7 +56,7 @@ mv "${test_file}" "${test_file}.test"
 stack exec -- espa -v "${test_file}.test" || exit 1
 cmp "${test_file}.test.esm" "${test_file}.esm" || exit 1
 
-test_file="test_data/Bloodmoon"
+test_file="test_data/Data Files/Bloodmoon"
 echo "${test_file}.esm"
 rm -rf "${test_file}" "${test_file}.test.esm" "${test_file}.test"
 stack exec -- espa -vad "${test_file}.esm" || exit 1
