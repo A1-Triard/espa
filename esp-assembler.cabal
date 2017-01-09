@@ -1,5 +1,5 @@
 name:                esp-assembler
-version:             0.2
+version:             0.3
 synopsis:            A tool for converting ESM/ESP/ESS files to and from text format. 
 description:         A tool for converting ESM/ESP/ESS files to and from text format. 
 homepage:            https://github.com/A1-Triard/esp-assembler
@@ -16,12 +16,14 @@ cabal-version:       >=1.10
 library
   hs-source-dirs: src
   exposed-modules: Control.Error.Extensions
+                 , Data.Tes3.Assembler
+                 , Data.Tes3.Assembler.Native
                  , Data.Tes3.Disassembler
                  , Data.Tes3.Disassembler.Native
                  , Data.Tes3.Parser
                  , Data.Tes3.Parser.Native
-                 , Data.Tes3.Assembler
-                 , Data.Tes3.Assembler.Native
+                 , Data.Tes3.Utils
+                 , Data.Tes3.Utils.Native
                  , Espa.Cli
                  , Espa.Cli.Native
   other-modules: Paths_esp_assembler
@@ -137,6 +139,7 @@ test-suite esp-assembler-test
   hs-source-dirs: test
   main-is: Spec.hs
   other-modules: Data.Tes3.Parser.Spec
+               , Data.Tes3.Utils.Spec
   default-extensions: CPP
                     , TemplateHaskell
                     , ViewPatterns
