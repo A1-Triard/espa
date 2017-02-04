@@ -71,7 +71,7 @@ t3FieldBody T3MultiString s = do
   return $ T3MultiStringField s t
 t3FieldBody T3Ref s = do
   void $ Tp.char ' '
-  n <- Tp.decimal
+  n <- Tp.signed Tp.decimal
   void $ Tp.char ' '
   t <- pLine
   return $ T3RefField s n t
