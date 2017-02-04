@@ -19,7 +19,6 @@ writeT3FileHeader (T3FileHeader version file_type author description refs)
 writeT3Field :: T3Field -> Text
 writeT3Field (T3BinaryField sign d) = T.pack (show sign) <> " " <> T.pack (C.unpack (encode d)) <> "\n"
 writeT3Field (T3StringField sign s) = T.pack (show sign) <> " " <> writeNulledLine s
-writeT3Field (T3FixedStringField sign s) = T.pack (show sign) <> " " <> writeLine s
 writeT3Field (T3MultilineField sign t) = T.pack (show sign) <> "\n" <> writeLines t
 writeT3Field (T3MultiStringField sign t) = T.pack (show sign) <> " " <> writeNames t
 writeT3Field (T3RefField sign z n) = T.pack (show sign) <> " " <> T.pack (show z) <> " " <> writeLine n

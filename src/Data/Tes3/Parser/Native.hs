@@ -78,7 +78,7 @@ t3FieldBody T3Ref s = do
 t3FieldBody (T3FixedString _) s = do
   void $ Tp.char ' '
   t <- pNulledLine
-  return $ T3FixedStringField s t
+  return $ T3StringField s t
 t3FieldBody T3Float s = do
   void $ Tp.char ' '
   v <- pFloat
