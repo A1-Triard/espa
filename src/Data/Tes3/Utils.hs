@@ -10,6 +10,7 @@ module Data.Tes3.Utils
   , writeLines
   , pLines
   , writeNames
+  , writeEnum
   , pNames
   , pEnum
   , pT3Sign

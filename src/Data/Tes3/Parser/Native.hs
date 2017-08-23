@@ -23,7 +23,7 @@ pT3FileHeader = do
   version <- Tp.decimal
   Tp.endOfLine
   void $ Tp.string "TYPE "
-  file_type <- pEnum
+  file_type <- pEnum 0
   Tp.endOfLine
   void $ Tp.string "AUTHOR "
   author <- pLine
@@ -170,7 +170,7 @@ t3FieldBody T3Script s = do
     data_size var_table_size
 t3FieldBody T3Dial s = do
   void $ Tp.char ' '
-  t <- (Tp.endOfLine >> return (Left 0)) <|> (Left <$> Tp.decimal <* Tp.endOfLine) <|> (Right <$> pEnum <* Tp.endOfLine)
+  t <- (Tp.endOfLine >> return (Left 0)) <|> (Left <$> Tp.decimal <* Tp.endOfLine) <|> (Right <$> pEnum 2 <* Tp.endOfLine)
   return $ T3DialField s t
 t3FieldBody T3None s = do
   Tp.endOfLine

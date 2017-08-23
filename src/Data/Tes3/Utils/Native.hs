@@ -174,8 +174,11 @@ pNames = do
       void $ Tp.char ';'
       return s
 
-pEnum :: (Eq a, Ord a, Enum a, Bounded a, Show a) => T.Parser a
-pEnum = foldl1 (<|>) [Tp.string (ST.pack $ show t) >> return t | t <- [minBound .. maxBound]]
+writeEnum :: (Eq a, Ord a, Enum a, Bounded a, Show a) => Int -> a -> Text
+writeEnum prefix = T.pack . drop prefix . show
+
+pEnum :: (Eq a, Ord a, Enum a, Bounded a, Show a) => Int -> T.Parser a
+pEnum prefix = foldl1 (<|>) [Tp.string (ST.pack $ drop prefix $ show t) >> return t | t <- [minBound .. maxBound]]
 
 pT3Sign :: T.Parser T3Sign
 pT3Sign = do
