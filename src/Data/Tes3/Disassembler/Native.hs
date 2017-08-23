@@ -53,6 +53,8 @@ writeT3Field
     <> " " <> T.pack (show shorts) <> " " <> T.pack (show longs) <> " " <> T.pack (show floats)
     <> " " <> T.pack (show data_size) <> " " <> T.pack (show var_table_size)
     <> "\n"
+writeT3Field (T3DialField sign t) = T.pack (show sign) <> either (\x -> if x == 0 then T.empty else " " <> T.pack (show x)) ((" " <> ) . T.pack . show) t <> "\n"
+writeT3Field (T3NoneField sign) = T.pack (show sign) <> "\n"
 
 writeT3Record :: T3Record -> Text
 writeT3Record (T3Record sign gap fields)

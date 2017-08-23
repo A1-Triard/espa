@@ -11,7 +11,7 @@ module Data.Tes3.Utils
   , pLines
   , writeNames
   , pNames
-  , pT3FileType
+  , pEnum
   , pT3Sign
   ) where
 

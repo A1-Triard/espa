@@ -1,5 +1,5 @@
 name:                esp-assembler
-version:             0.6.1
+version:             0.7
 synopsis:            A tool for converting ESM/ESP/ESS files to and from text format. 
 description:         A tool for converting ESM/ESP/ESS files to and from text format. 
 homepage:            https://github.com/A1-Triard/esp-assembler
@@ -82,6 +82,7 @@ library
                , mono-traversable
                , conduit
                , conduit-combinators
+               , conduit-extra
                , directory
                , data-binary-ieee754
                , zlib
@@ -185,6 +186,7 @@ test-suite esp-assembler-test
                , bytestring
                , conduit
                , conduit-combinators
+               , conduit-extra
                , containers
                , data-binary-ieee754
                , directory
