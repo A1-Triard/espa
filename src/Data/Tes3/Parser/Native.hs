@@ -33,10 +33,21 @@ pT3FileHeader = do
   refs <- many t3FileRef
   return $ T3FileHeader version file_type author description refs
 
+pT3Flag :: T.Parser (T3Flags -> T3Flags)
+pT3Flag
+   =  (Tp.string "Blocked" >> return (\f -> f { t3Blocked = True }))
+  <|> (Tp.string "Persist" >> return (\f -> f { t3Persist = True }))
+  <|> (Tp.string "Deleted" >> return (\f -> f { t3Deleted = True }))
+
+pT3Flags :: T.Parser T3Flags
+pT3Flags = do
+  t <- whileM (Tp.option False $ Tp.char ' ' >> return True) pT3Flag
+  return $ foldr ($) t3FlagsEmpty t
+
 pT3Record :: T.Parser T3Record
 pT3Record = do
   s <- pT3Sign
-  g <- Tp.option 0 $ Tp.char ' ' >> Tp.decimal
+  g <- pT3Flags
   Tp.endOfLine
   fields <- many $ t3Field s
   return $ T3Record s g fields

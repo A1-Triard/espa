@@ -30,7 +30,7 @@ testFile1Text
   <> "CTDT AgAAAAAAQEB4AFgC\n"
   <> "CNAM _ale_dr_a_fC_1_025%\n"
   <> "\n"
-  <> "CLOT 51\n"
+  <> "CLOT Blocked\n"
   <> "NAME _ale_short_toga\n"
   <> "MODL Aleanne\\\\dr_b_fC_la_20s_gnd.nif\n"
   <> "FNAM Короткая тога\n"
@@ -54,7 +54,7 @@ invalidTestFileText
   <> "CTDT AgAAAAAAQEB4AFgC\n"
   <> "CNAM _ale_dr_a_fC_1_025%\n"
   <> "\n"
-  <> "CLOT 51\n"
+  <> "CLOT Blocked\n"
   <> "NAME _ale_short_toga\n"
   <> "MODL Aleanne\\\\dr_b_fC_la_20s_gnd.nif\n"
   <> "FNAM Короткая тога\n"
@@ -69,14 +69,14 @@ testFile1 = T3File
     [ T3FileRef "Morrowind.esm\0" 79764287
     ]
   )
-  [ T3Record (T3Mark CLOT) 0
+  [ T3Record (T3Mark CLOT) t3FlagsEmpty
     [ T3StringField (T3Mark NAME) "_ale_leather_skirt\0"
     , T3StringField (T3Mark MODL) "Aleanne\\dr_a_fC_la_25_gnd.nif\0"
     , T3StringField (T3Mark FNAM) "Длинная тога\0"
     , T3BinaryField (T3Mark CTDT) "\STX\NUL\NUL\NUL\NUL\NUL@@x\NULX\STX"
     , T3StringField (T3Mark CNAM) "_ale_dr_a_fC_1_025"
     ]
-  , T3Record (T3Mark CLOT) 51
+  , T3Record (T3Mark CLOT) (t3FlagsEmpty { t3Blocked = True })
     [ T3StringField (T3Mark NAME) "_ale_short_toga\0"
     , T3StringField (T3Mark MODL) "Aleanne\\dr_b_fC_la_20s_gnd.nif\0"
     , T3StringField (T3Mark FNAM) "Короткая тога\0"

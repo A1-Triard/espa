@@ -56,9 +56,16 @@ writeT3Field
 writeT3Field (T3DialField sign t) = T.pack (show sign) <> either (\x -> if x == 0 then T.empty else " " <> T.pack (show x)) ((" " <> ) . writeEnum 2) t <> "\n"
 writeT3Field (T3NoneField sign) = T.pack (show sign) <> "\n"
 
+writeT3Flags :: T3Flags -> Text
+writeT3Flags f =
+  ""
+  <> (if t3Deleted f then " Deleted" else "")
+  <> (if t3Blocked f then " Blocked" else "")
+  <> (if t3Persist f then " Persist" else "")
+
 writeT3Record :: T3Record -> Text
-writeT3Record (T3Record sign gap fields)
-  =  "\n" <> T.pack (show sign) <> (if gap == 0 then "" else " " <> T.pack (show gap)) <> "\n"
+writeT3Record (T3Record sign fl fields)
+  =  "\n" <> T.pack (show sign) <> writeT3Flags fl <> "\n"
   <> T.concat [writeT3Field f | f <- fields]
 
 conduitGet1 :: Monad m => Get e a -> ByteOffset -> ConduitM S.ByteString a m (Either (ByteOffset, Either String e) (ByteOffset, a))
