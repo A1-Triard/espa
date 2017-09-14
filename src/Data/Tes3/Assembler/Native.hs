@@ -95,8 +95,13 @@ pRecordsNumber = do
 
 assembly :: Monad m => ConduitM S.Text ByteString m (Either String (T3FileType, Word32))
 assembly = runExceptT $ do
-  (hoistEither =<<) $ lift $ mapOutput (const putT3FileSignature) $ conduitParser1 (pT3FileSignature <?> "S")
-  T3FileHeader _ file_type _ _ _ <- (hoistEither =<<) $ lift $ mapOutput putT3FileHeader $ conduitParser1 (pT3FileHeader <?> "H")
+  T3Record rs _ rfields <- (hoistEither =<<) $ lift $ mapOutput putT3Record $ conduitParser1 (pT3Record <?> "H")
+  if rs /= T3Mark TES3
+    then hoistEither $ Left $ "Invalid file format."
+    else return ()
+  file_type <- case rfields of
+    (T3HeaderField (T3Mark HEDR) (T3FileHeader _ t _ _) : _) -> return t
+    _ -> hoistEither $ Left $ "Invalid file header."
   n <- (hoistEither =<<) $ lift $ mapOutput putT3Record $ conduitRepeatE 0 $ conduitParserN (pMaybeT3Record <?> "R")
   items_count <- (hoistEither =<<) $ lift $ mapOutput (const B.empty) $ conduitParser1 (Tp.option n pRecordsNumber <?> "RN")
   if items_count < n

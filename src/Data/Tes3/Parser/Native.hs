@@ -4,38 +4,6 @@ module Data.Tes3.Parser.Native where
 import Data.Tes3
 import Data.Tes3.Utils
 
-pT3FileSignature :: T.Parser ()
-pT3FileSignature = do
-  void $ Tp.string "3SET"
-  Tp.endOfLine
-
-t3FileRef :: T.Parser T3FileRef
-t3FileRef = do
-  void $ Tp.string "    "
-  n <- pNulledRun
-  void $ Tp.char ' '
-  z <- Tp.decimal
-  Tp.endOfLine
-  return $ T3FileRef n z
-
-pT3FileHeader :: T.Parser T3FileHeader
-pT3FileHeader = do
-  void $ Tp.string "VERSION "
-  version <- Tp.decimal
-  Tp.endOfLine
-  void $ Tp.string "TYPE "
-  file_type <- pEnum 0
-  Tp.endOfLine
-  void $ Tp.string "AUTHOR "
-  author <- pLine
-  void $ Tp.string "DESCRIPTION"
-  Tp.endOfLine
-  description <- pLines
-  void $ Tp.string "FILES"
-  Tp.endOfLine
-  refs <- many t3FileRef
-  return $ T3FileHeader version file_type author description refs
-
 pT3Flag :: T.Parser (T3Flags -> T3Flags)
 pT3Flag
    =  (Tp.string "Blocked" >> return (\f -> f { t3Blocked = True }))
@@ -189,3 +157,12 @@ t3FieldBody T3Dial s = do
 t3FieldBody T3None s = do
   Tp.endOfLine
   return $ T3NoneField s
+t3FieldBody T3Header s = do
+  void $ Tp.char ' '
+  file_type <- pEnum 0
+  void $ Tp.char ' '
+  version <- Tp.decimal
+  void $ Tp.char ' '
+  author <- pLine
+  description <- pLines
+  return $ T3HeaderField s $ T3FileHeader version file_type author description

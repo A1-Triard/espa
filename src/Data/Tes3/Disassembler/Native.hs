@@ -5,18 +5,6 @@ import Data.Tes3
 import Data.Tes3.Get
 import Data.Tes3.Utils
 
-writeT3FileSignature :: Text
-writeT3FileSignature = "3SET\n"
-
-writeT3FileHeader :: T3FileHeader -> Text
-writeT3FileHeader (T3FileHeader version file_type author description refs)
-  =  "VERSION " <> T.pack (show version) <> "\n"
-  <> "TYPE " <> writeEnum 0 file_type <> "\n"
-  <> "AUTHOR " <> writeLine author
-  <> "DESCRIPTION\n" <> writeLines description
-  <> "FILES\n"
-  <> T.concat ["    " <> writeNulledRun n <> " " <> T.pack (show z) <> "\n" | (T3FileRef n z) <- refs]
-
 writeT3Field :: T3Field -> Text
 writeT3Field (T3BinaryField sign d) = T.pack (show sign) <> " " <> T.pack (C.unpack (encode d)) <> "\n"
 writeT3Field (T3StringField sign s) = T.pack (show sign) <> " " <> writeNulledLine s
@@ -56,6 +44,8 @@ writeT3Field
     <> "\n"
 writeT3Field (T3DialField sign t) = T.pack (show sign) <> either (\x -> if x == 0 then T.empty else " " <> T.pack (show x)) ((" " <> ) . writeEnum 2) t <> "\n"
 writeT3Field (T3NoneField sign) = T.pack (show sign) <> "\n"
+writeT3Field (T3HeaderField sign (T3FileHeader version file_type author description)) =
+  T.pack (show sign) <> " " <> writeEnum 0 file_type <> " " <> T.pack (show version) <> " " <> writeLine author <> writeLines description
 
 writeT3Flags :: T3Flags -> Text
 writeT3Flags f =
@@ -129,15 +119,13 @@ conduitRepeatE a0 produce =
             Left err -> return $ Left err
             Right an_1 -> go an_1
 
-disassembly :: Monad m => Bool -> (T3Sign -> Bool) -> ConduitM S.ByteString Text m (Either (ByteOffset, Either String (ByteOffset -> String)) ())
-disassembly adjust skip_record = runExceptT $ do
-  (h, _) <- (hoistEither =<<) $ lift $ mapOutput (const writeT3FileSignature) $ conduitGet1 getT3FileSignature 0
-  (r, (_, items_count)) <- (hoistEither =<<) $ lift $ mapOutput (writeT3FileHeader . fst) $ conduitGet1 getT3FileHeader h
+disassembly :: Monad m => Bool -> (T3Sign -> Bool) -> Word32 -> ConduitM S.ByteString Text m (Either (ByteOffset, Either String (ByteOffset -> String)) ())
+disassembly adjust skip_record items_count = runExceptT $ do
   let write_rec (T3Record s a b) = if skip_record s then T.empty else writeT3Record (T3Record s a b)
-  (f, n) <- (hoistEither =<<) $ lift $ mapOutput write_rec $ conduitRepeatE (r, 0) $ conduitGetN $ getT3Record adjust
-  if n > items_count
-    then hoistEither $ Left (f, Right $ const $ "Records count mismatch: no more than " ++ show items_count ++ " expected, but " ++ show n ++ " readed.")
+  (f, n) <- (hoistEither =<<) $ lift $ mapOutput write_rec $ conduitRepeatE (0, 0) $ conduitGetN $ getT3Record adjust
+  if n - 1 > items_count
+    then hoistEither $ Left (f, Right $ const $ "Records count mismatch: no more than " ++ show items_count ++ " expected, but " ++ show (n - 1) ++ " readed.")
     else return ()
-  if n /= items_count
+  if n - 1 /= items_count
     then lift $ yield $ "\n" <> "# " <> T.pack (show items_count) <> "\n"
     else return ()
