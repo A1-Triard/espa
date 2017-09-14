@@ -14,7 +14,8 @@ writeT3FileHeader (T3FileHeader version file_type author description refs)
   <> "TYPE " <> writeEnum 0 file_type <> "\n"
   <> "AUTHOR " <> writeLine author
   <> "DESCRIPTION\n" <> writeLines description
-  <> T.concat [writeNulledRun n <> " " <> T.pack (show z) <> "\n" | (T3FileRef n z) <- refs]
+  <> "FILES\n"
+  <> T.concat ["    " <> writeNulledRun n <> " " <> T.pack (show z) <> "\n" | (T3FileRef n z) <- refs]
 
 writeT3Field :: T3Field -> Text
 writeT3Field (T3BinaryField sign d) = T.pack (show sign) <> " " <> T.pack (C.unpack (encode d)) <> "\n"

@@ -11,6 +11,7 @@ pT3FileSignature = do
 
 t3FileRef :: T.Parser T3FileRef
 t3FileRef = do
+  void $ Tp.string "    "
   n <- pNulledRun
   void $ Tp.char ' '
   z <- Tp.decimal
@@ -30,6 +31,8 @@ pT3FileHeader = do
   void $ Tp.string "DESCRIPTION"
   Tp.endOfLine
   description <- pLines
+  void $ Tp.string "FILES"
+  Tp.endOfLine
   refs <- many t3FileRef
   return $ T3FileHeader version file_type author description refs
 

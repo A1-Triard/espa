@@ -21,7 +21,8 @@ testFile1Text
   <> "AUTHOR Ath\n"
   <> "DESCRIPTION\n"
   <> "    Descr descr descr.\n"
-  <> "Morrowind.esm 79764287\n"
+  <> "FILES\n"
+  <> "    Morrowind.esm 79764287\n"
   <> "\n"
   <> "CLOT\n"
   <> "NAME _ale_leather_skirt\n"
@@ -45,7 +46,8 @@ invalidTestFileText
   <> "AUTHOR Ath\n"
   <> "DESCRIPTION\n"
   <> "   Descr descr descr.\n"
-  <> "Morrowind.esm 79764287\n"
+  <> "FILES\n"
+  <> "    Morrowind.esm 79764287\n"
   <> "\n"
   <> "CLOT\n"
   <> "NAME _ale_leather_skirt\n"
@@ -98,4 +100,4 @@ parseValidFile = do
 
 parseInvalidFile :: Assertion
 parseInvalidFile = do
-  assertEqual "" (Left "endOfInput") $ TP.parseOnly (pT3File <* Tp.endOfInput) invalidTestFileText
+  assertEqual "" (Left "string") $ TP.parseOnly (pT3File <* Tp.endOfInput) invalidTestFileText
