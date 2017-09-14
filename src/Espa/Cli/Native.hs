@@ -162,7 +162,7 @@ espaDisassembly adjust skip_record verbose name = do
     Left (offset, err) -> do
       tryIO $ removeFile output_name
       case err of
-        Right e -> throwE $ userError $ name ++ ": " ++ replace "{0}" (showHex offset "h") e
+        Right e -> throwE $ userError $ name ++ ": " ++ e offset
         Left e -> throwE $ userError $ name ++ ": " ++ "Internal error: " ++ showHex offset "h: " ++ e
 
 espaAssemblyErrorText :: IOError -> String
