@@ -1,5 +1,5 @@
 name:                esp-assembler
-version:             0.9.2
+version:             0.9.3
 synopsis:            A tool for converting ESM/ESP/ESS files to and from text format. 
 description:         A tool for converting ESM/ESP/ESS files to and from text format. 
 homepage:            https://github.com/A1-Triard/esp-assembler
