@@ -44,8 +44,10 @@ writeT3Field
     <> "\n"
 writeT3Field (T3DialField sign t) = T.pack (show sign) <> either (\x -> if x == 0 then T.empty else " " <> T.pack (show x)) ((" " <> ) . writeEnum 2) t <> "\n"
 writeT3Field (T3NoneField sign) = T.pack (show sign) <> "\n"
-writeT3Field (T3HeaderField sign (T3FileHeader version file_type author description)) =
-  T.pack (show sign) <> " " <> writeEnum 0 file_type <> " " <> T.pack (show version) <> " " <> writeLine author <> writeLines description
+writeT3Field (T3HeaderField sign (T3FileHeader version file_type author description))
+  =  T.pack (show sign) <> " " <> writeEnum 0 file_type <> " " <> T.pack (show version) <> "\n"
+  <> "    " <> writeLine author
+  <> writeLines description
 
 writeT3Flags :: T3Flags -> Text
 writeT3Flags f =

@@ -162,7 +162,8 @@ t3FieldBody T3Header s = do
   file_type <- pEnum 0
   void $ Tp.char ' '
   version <- Tp.decimal
-  void $ Tp.char ' '
+  Tp.endOfLine
+  void $ Tp.string "    "
   author <- pLine
   description <- pLines
   return $ T3HeaderField s $ T3FileHeader version file_type author description

@@ -16,7 +16,8 @@ tests = TestList
 testFile1Text :: S.Text
 testFile1Text
   =  "TES3\n"
-  <> "HEDR ESP 1067869798 Ath\n"
+  <> "HEDR ESP 1067869798\n"
+  <> "    Ath\n"
   <> "    Descr descr descr.\n"
   <> "MAST Morrowind.esm\n"
   <> "DATA 79764287\n"
@@ -38,7 +39,8 @@ testFile1Text
 invalidTestFileText :: S.Text
 invalidTestFileText
   =  "TES3\n"
-  <> "HEDR ESP 1067869798 Ath\n"
+  <> "HEDR ESP 1067869798\n"
+  <> "    Ath\n"
   <> "   Descr descr descr.\n"
   <> "MAST Morrowind.esm\n"
   <> "DATA 79764287\n"
