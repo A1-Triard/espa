@@ -168,3 +168,14 @@ t3FieldBody T3Header s = do
   author <- pLine
   description <- pLines
   return $ T3HeaderField s $ T3FileHeader version file_type author description
+t3FieldBody T3EssNpc s = do
+  void $ Tp.char ' '
+  index <- Tp.decimal
+  void $ Tp.char ' '
+  disposition <- Tp.decimal
+  void $ Tp.char ' '
+  reputation <- Tp.decimal
+  void $ Tp.char ' '
+  unknown <- Tp.decimal
+  Tp.endOfLine
+  return $ T3EssNpcField s $ T3EssNpcData disposition reputation index unknown
