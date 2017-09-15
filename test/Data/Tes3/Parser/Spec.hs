@@ -15,14 +15,11 @@ tests = TestList
 
 testFile1Text :: S.Text
 testFile1Text
-  =  "3SET\n"
-  <> "VERSION 1067869798\n"
-  <> "TYPE ESP\n"
-  <> "AUTHOR Ath\n"
-  <> "DESCRIPTION\n"
+  =  "TES3\n"
+  <> "HEDR ESP 1067869798 Ath\n"
   <> "    Descr descr descr.\n"
-  <> "FILES\n"
-  <> "    Morrowind.esm 79764287\n"
+  <> "MAST Morrowind.esm\n"
+  <> "DATA 79764287\n"
   <> "\n"
   <> "CLOT\n"
   <> "NAME _ale_leather_skirt\n"
@@ -40,14 +37,11 @@ testFile1Text
 
 invalidTestFileText :: S.Text
 invalidTestFileText
-  =  "3SET\n"
-  <> "VERSION 1067869798\n"
-  <> "TYPE ESP\n"
-  <> "AUTHOR Ath\n"
-  <> "DESCRIPTION\n"
+  =  "TES3\n"
+  <> "HEDR ESP 1067869798 Ath\n"
   <> "   Descr descr descr.\n"
-  <> "FILES\n"
-  <> "    Morrowind.esm 79764287\n"
+  <> "MAST Morrowind.esm\n"
+  <> "DATA 79764287\n"
   <> "\n"
   <> "CLOT\n"
   <> "NAME _ale_leather_skirt\n"
@@ -63,15 +57,14 @@ invalidTestFileText
   <> "CTDT AgAAAAAAgD94AFgC\n"
   <> "CNAM _ale_dr_b_fC_la_20s%\n"
 
-data T3File = T3File T3FileHeader [T3Record] deriving (Eq, Show)
-
-testFile1 :: T3File
-testFile1 = T3File
-  ( T3FileHeader 1067869798 ESP "Ath" ["Descr descr descr."]
-    [ T3FileRef "Morrowind.esm\0" 79764287
+testFile1 :: [T3Record]
+testFile1 =
+  [ T3Record (T3Mark TES3) t3FlagsEmpty
+    [ T3HeaderField (T3Mark HEDR) (T3FileHeader 1067869798 ESP "Ath" ["Descr descr descr."])
+    , T3StringField (T3Mark MAST) "Morrowind.esm\0"
+    , T3LongField (T3Mark DATA) 79764287
     ]
-  )
-  [ T3Record (T3Mark CLOT) t3FlagsEmpty
+  , T3Record (T3Mark CLOT) t3FlagsEmpty
     [ T3StringField (T3Mark NAME) "_ale_leather_skirt\0"
     , T3StringField (T3Mark MODL) "Aleanne\\dr_a_fC_la_25_gnd.nif\0"
     , T3StringField (T3Mark FNAM) "Длинная тога\0"
@@ -87,12 +80,11 @@ testFile1 = T3File
     ]
   ]
 
-pT3File :: T.Parser T3File
+pT3File :: T.Parser [T3Record]
 pT3File = do
-  pT3FileSignature
-  h <- pT3FileHeader
-  r <- many (Tp.endOfLine >> pT3Record)
-  return $ T3File h r
+  header <- pT3Record
+  records <- many (Tp.endOfLine *> pT3Record)
+  return (header : records)
 
 parseValidFile :: Assertion
 parseValidFile = do
@@ -100,4 +92,4 @@ parseValidFile = do
 
 parseInvalidFile :: Assertion
 parseInvalidFile = do
-  assertEqual "" (Left "string") $ TP.parseOnly (pT3File <* Tp.endOfInput) invalidTestFileText
+  assertEqual "" (Left "endOfInput") $ TP.parseOnly (pT3File <* Tp.endOfInput) invalidTestFileText

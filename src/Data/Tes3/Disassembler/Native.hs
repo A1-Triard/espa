@@ -56,7 +56,7 @@ writeT3Flags f =
 
 writeT3Record :: T3Record -> Text
 writeT3Record (T3Record sign fl fields)
-  =  "\n" <> T.pack (show sign) <> writeT3Flags fl <> "\n"
+  =  T.pack (show sign) <> writeT3Flags fl <> "\n"
   <> T.concat [writeT3Field f | f <- fields]
 
 conduitGet1 :: Monad m => Get e a -> ByteOffset -> ConduitM S.ByteString a m (Either (ByteOffset, Either String e) (ByteOffset, a))
@@ -121,11 +121,12 @@ conduitRepeatE a0 produce =
 
 disassembly :: Monad m => Bool -> (T3Sign -> Bool) -> Word32 -> ConduitM S.ByteString Text m (Either (ByteOffset, Either String (ByteOffset -> String)) ())
 disassembly adjust skip_record items_count = runExceptT $ do
-  let write_rec (T3Record s a b) = if skip_record s then T.empty else writeT3Record (T3Record s a b)
-  (f, n) <- (hoistEither =<<) $ lift $ mapOutput write_rec $ conduitRepeatE (0, 0) $ conduitGetN $ getT3Record adjust
-  if n - 1 > items_count
-    then hoistEither $ Left (f, Right $ const $ "Records count mismatch: no more than " ++ show items_count ++ " expected, but " ++ show (n - 1) ++ " readed.")
+  let write_rec first (T3Record s a b) = if skip_record s then T.empty else (if first then "" else "\n") <> writeT3Record (T3Record s a b)
+  (r, _) <- (hoistEither =<<) $ lift $ mapOutput (write_rec True) $ conduitGet1 (getT3Record adjust) 0
+  (f, n) <- (hoistEither =<<) $ lift $ mapOutput (write_rec False) $ conduitRepeatE (r, 0) $ conduitGetN $ getT3Record adjust
+  if n > items_count
+    then hoistEither $ Left (f, Right $ const $ "Records count mismatch: no more than " ++ show items_count ++ " expected, but " ++ show n ++ " readed.")
     else return ()
-  if n - 1 /= items_count
+  if n /= items_count
     then lift $ yield $ "\n" <> "# " <> T.pack (show items_count) <> "\n"
     else return ()

@@ -169,6 +169,7 @@ espaDisassembly adjust skip_record verbose name = do
       items_count <- case checkSignature header of
         Nothing -> throwE $ userError $ name ++ ": " ++ "Invalid file format."
         Just x -> return x
+      tryIO $ hSeek input AbsoluteSeek 0
       withTextOutputFile output_name $ \output -> do
         runConduit $ (N.sourceHandle input =$= disassembly adjust skip_record items_count) `fuseUpstream` (N.concatMap T.toChunks =$= N.encode N.utf8 =$= N.sinkHandle output)
   case r of
