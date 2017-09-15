@@ -24,13 +24,13 @@ if [ \! -e "Data Files/Bloodmoon.esm" ]; then
 fi
 cd ..
 
-#test_file="test_data/Saves/Alchemy0000"
-#echo "${test_file}.ess"
-#rm -rf "${test_file}" "${test_file}.test.ess" "${test_file}.test"
-#stack exec -- espa -vad "${test_file}.ess" || exit 1
-#mv "${test_file}" "${test_file}.test"
-#stack exec -- espa -v "${test_file}.test" || exit 1
-#cmp "${test_file}.test.ess" "${test_file}.ess" || exit 1
+test_file="test_data/Saves/Alchemy0000"
+echo "${test_file}.ess"
+rm -rf "${test_file}" "${test_file}.test.ess" "${test_file}.test"
+stack exec -- espa -vad "${test_file}.ess" || exit 1
+mv "${test_file}" "${test_file}.test"
+stack exec -- espa -v "${test_file}.test" || exit 1
+cmp "${test_file}.test.ess" "${test_file}.ess" || exit 1
 
 test_file="test_data/Data Files/Aleanne Armor and Clothes 1+2"
 echo "${test_file}.esp"

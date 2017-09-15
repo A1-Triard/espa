@@ -63,7 +63,8 @@ t3FieldBody (T3FixedString _) s = do
   return $ T3StringField s t
 t3FieldBody T3Float s = do
   void $ Tp.char ' '
-  v <- pFloat
+  isNonStandardNan <- Tp.option False (Tp.char 'x' >> return True)
+  v <- if isNonStandardNan then Left <$> Tp.decimal else Right <$> pFloat
   Tp.endOfLine
   return $ T3FloatField s v
 t3FieldBody T3Int s = do
