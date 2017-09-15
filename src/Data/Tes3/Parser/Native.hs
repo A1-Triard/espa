@@ -43,7 +43,7 @@ t3FieldBody (T3String _) s = do
   void $ Tp.char ' '
   t <- pNulledLine
   return $ T3StringField s t
-t3FieldBody (T3Multiline _) s = do
+t3FieldBody (T3Multiline _ _) s = do
   Tp.endOfLine
   t <- pLines
   return $ T3MultilineField s t
