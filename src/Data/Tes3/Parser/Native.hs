@@ -33,7 +33,6 @@ pFloat = (double2Float <$> Tp.double) <|> (const (0/0) <$> Tp.string "NaN")
 
 pNpcChar :: T.Parser T3NpcDataChar
 pNpcChar = do
-  void $ Tp.char ' '
   strength <- Tp.decimal
   void $ Tp.char ' '
   intelligence <- Tp.decimal
@@ -275,7 +274,6 @@ t3FieldBody T3Npc s = do
   void $ Tp.char ' '
   gold <- Tp.signed Tp.decimal
   void $ Tp.char ' '
-  unknown <- Tp.decimal
-  ch <- Tp.option Nothing (Just <$> pNpcChar)
+  ch <- (Left <$> (Tp.char '(' *> Tp.decimal <* Tp.char ')')) <|> (Right <$> pNpcChar)
   Tp.endOfLine
-  return $ T3NpcField s $ T3NpcData level disposition reputation rank gold ch unknown
+  return $ T3NpcField s $ T3NpcData level disposition reputation rank gold ch

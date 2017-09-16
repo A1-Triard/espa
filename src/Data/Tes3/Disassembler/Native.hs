@@ -70,18 +70,17 @@ writeT3Field (T3EssNpcField sign (T3EssNpcData disposition reputation index))
   <> " " <> write disposition
   <> " " <> write reputation
   <> "\n"
-writeT3Field (T3NpcField sign (T3NpcData level disposition reputation rank gold ch unknown)) =
+writeT3Field (T3NpcField sign (T3NpcData level disposition reputation rank gold ch)) =
   let
     char_text = case ch of
-      Nothing -> ""
-      Just n -> writeNpcChar n
+      Left x -> " (" <> write x <> ")"
+      Right n -> writeNpcChar n
   in write sign
   <> " " <> write level
   <> " " <> write disposition
   <> " " <> write reputation
   <> " " <> write rank
   <> " " <> write gold
-  <> " " <> write unknown
   <> char_text <> "\n"
 
 writeT3Flags :: T3Flags -> Text
