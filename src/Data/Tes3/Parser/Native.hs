@@ -31,6 +31,92 @@ t3Field record_sign = do
 pFloat :: T.Parser Float
 pFloat = (double2Float <$> Tp.double) <|> (const (0/0) <$> Tp.string "NaN")
 
+pNpcChar :: T.Parser T3NpcDataChar
+pNpcChar = do
+  void $ Tp.char ' '
+  strength <- Tp.decimal
+  void $ Tp.char ' '
+  intelligence <- Tp.decimal
+  void $ Tp.char ' '
+  willpower <- Tp.decimal
+  void $ Tp.char ' '
+  agility <- Tp.decimal
+  void $ Tp.char ' '
+  speed <- Tp.decimal
+  void $ Tp.char ' '
+  endurance <- Tp.decimal
+  void $ Tp.char ' '
+  personality <- Tp.decimal
+  void $ Tp.char ' '
+  luck <- Tp.decimal
+  void $ Tp.char ' '
+  block <- Tp.decimal
+  void $ Tp.char ' '
+  armorer <- Tp.decimal
+  void $ Tp.char ' '
+  mediumArmor <- Tp.decimal
+  void $ Tp.char ' '
+  heavyArmor <- Tp.decimal
+  void $ Tp.char ' '
+  bluntWeapon <- Tp.decimal
+  void $ Tp.char ' '
+  longBlade <- Tp.decimal
+  void $ Tp.char ' '
+  axe <- Tp.decimal
+  void $ Tp.char ' '
+  spear <- Tp.decimal
+  void $ Tp.char ' '
+  athletics <- Tp.decimal
+  void $ Tp.char ' '
+  enchant <- Tp.decimal
+  void $ Tp.char ' '
+  destruction <- Tp.decimal
+  void $ Tp.char ' '
+  alteration <- Tp.decimal
+  void $ Tp.char ' '
+  illusion <- Tp.decimal
+  void $ Tp.char ' '
+  conjuration <- Tp.decimal
+  void $ Tp.char ' '
+  mysticism <- Tp.decimal
+  void $ Tp.char ' '
+  restoration <- Tp.decimal
+  void $ Tp.char ' '
+  alchemy <- Tp.decimal
+  void $ Tp.char ' '
+  unarmored <- Tp.decimal
+  void $ Tp.char ' '
+  security <- Tp.decimal
+  void $ Tp.char ' '
+  sneak <- Tp.decimal
+  void $ Tp.char ' '
+  acrobatics <- Tp.decimal
+  void $ Tp.char ' '
+  lightArmor <- Tp.decimal
+  void $ Tp.char ' '
+  shortBlade <- Tp.decimal
+  void $ Tp.char ' '
+  marksman <- Tp.decimal
+  void $ Tp.char ' '
+  mercantile <- Tp.decimal
+  void $ Tp.char ' '
+  speechcraft <- Tp.decimal
+  void $ Tp.char ' '
+  handToHand <- Tp.decimal
+  void $ Tp.char ' '
+  faction <- Tp.decimal
+  void $ Tp.char ' '
+  health <- Tp.signed Tp.decimal
+  void $ Tp.char ' '
+  magicka <- Tp.signed Tp.decimal
+  void $ Tp.char ' '
+  fatigue <- Tp.signed Tp.decimal
+  return $ T3NpcDataChar
+    strength intelligence willpower agility speed endurance personality luck block armorer mediumArmor heavyArmor
+    bluntWeapon longBlade axe spear athletics enchant destruction alteration illusion conjuration mysticism restoration
+    alchemy unarmored security sneak acrobatics lightArmor shortBlade marksman mercantile speechcraft handToHand faction
+    health magicka fatigue
+
 t3FieldBody :: T3FieldType -> T3Sign -> T.Parser T3Field
 t3FieldBody T3Binary s = do
   void $ Tp.char ' '
@@ -172,10 +258,24 @@ t3FieldBody T3EssNpc s = do
   void $ Tp.char ' '
   index <- Tp.decimal
   void $ Tp.char ' '
-  disposition <- Tp.decimal
+  disposition <- Tp.signed Tp.decimal
   void $ Tp.char ' '
-  reputation <- Tp.decimal
+  reputation <- Tp.signed Tp.decimal
+  Tp.endOfLine
+  return $ T3EssNpcField s $ T3EssNpcData disposition reputation index
+t3FieldBody T3Npc s = do
+  void $ Tp.char ' '
+  level <- Tp.decimal
+  void $ Tp.char ' '
+  disposition <- Tp.signed Tp.decimal
+  void $ Tp.char ' '
+  reputation <- Tp.signed Tp.decimal
+  void $ Tp.char ' '
+  rank <- Tp.signed Tp.decimal
+  void $ Tp.char ' '
+  gold <- Tp.signed Tp.decimal
   void $ Tp.char ' '
   unknown <- Tp.decimal
+  ch <- Tp.option Nothing (Just <$> pNpcChar)
   Tp.endOfLine
-  return $ T3EssNpcField s $ T3EssNpcData disposition reputation index unknown
+  return $ T3NpcField s $ T3NpcData level disposition reputation rank gold ch unknown

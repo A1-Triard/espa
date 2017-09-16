@@ -5,18 +5,34 @@ import Data.Tes3
 import Data.Tes3.Get
 import Data.Tes3.Utils
 
+write :: Show a => a -> Text
+write = T.pack . show
+
+writeNpcChar :: T3NpcDataChar -> Text
+writeNpcChar d
+  =  " " <> write (t3NpcStrength d) <> " " <> write (t3NpcIntelligence d) <> " " <> write (t3NpcWillpower d) <> " " <> write (t3NpcAgility d)
+  <> " " <> write (t3NpcSpeed d) <> " " <> write (t3NpcEndurance d) <> " " <> write (t3NpcPersonality d) <> " " <> write (t3NpcLuck d)
+  <> " " <> write (t3NpcBlock d) <> " " <> write (t3NpcArmorer d) <> " " <> write (t3NpcMediumArmor d) <> " " <> write (t3NpcHeavyArmor d)
+  <> " " <> write (t3NpcBluntWeapon d) <> " " <> write (t3NpcLongBlade d) <> " " <> write (t3NpcAxe d) <> " " <> write (t3NpcSpear d)
+  <> " " <> write (t3NpcAthletics d) <> " " <> write (t3NpcEnchant d) <> " " <> write (t3NpcDestruction d) <> " " <> write (t3NpcAlteration d)
+  <> " " <> write (t3NpcIllusion d) <> " " <> write (t3NpcConjuration d) <> " " <> write (t3NpcMysticism d) <> " " <> write (t3NpcRestoration d)
+  <> " " <> write (t3NpcAlchemy d) <> " " <> write (t3NpcUnarmored d) <> " " <> write (t3NpcSecurity d) <> " " <> write (t3NpcSneak d)
+  <> " " <> write (t3NpcAcrobatics d) <> " " <> write (t3NpcLightArmor d) <> " " <> write (t3NpcShortBlade d) <> " " <> write (t3NpcMarksman d)
+  <> " " <> write (t3NpcMercantile d) <> " " <> write (t3NpcSpeechcraft d) <> " " <> write (t3NpcHandToHand d) <> " " <> write (t3NpcFaction d)
+  <> " " <> write (t3NpcHealth d) <> " " <> write (t3NpcMagicka d) <> " " <> write (t3NpcFatigue d)
+
 writeT3Field :: T3Field -> Text
-writeT3Field (T3BinaryField sign d) = T.pack (show sign) <> " " <> T.pack (C.unpack (encode d)) <> "\n"
-writeT3Field (T3StringField sign s) = T.pack (show sign) <> " " <> writeNulledLine s
-writeT3Field (T3MultilineField sign t) = T.pack (show sign) <> "\n" <> writeLines t
-writeT3Field (T3MultiStringField sign t) = T.pack (show sign) <> " " <> writeNames t
-writeT3Field (T3RefField sign z n) = T.pack (show sign) <> " " <> T.pack (show z) <> " " <> writeLine n
-writeT3Field (T3FloatField sign v) = T.pack (show sign) <> " " <> either (("x" <>) . T.pack . show) (T.pack . show . float2Double) v <> "\n"
-writeT3Field (T3IntField sign v) = T.pack (show sign) <> " " <> T.pack (show v) <> "\n"
-writeT3Field (T3ShortField sign v) = T.pack (show sign) <> " " <> T.pack (show v) <> "\n"
-writeT3Field (T3LongField sign v) = T.pack (show sign) <> " " <> T.pack (show v) <> "\n"
-writeT3Field (T3ByteField sign v) = T.pack (show sign) <> " " <> T.pack (show v) <> "\n"
-writeT3Field (T3CompressedField sign d) = T.pack (show sign) <> " " <> T.pack (C.unpack (encode d)) <> "\n"
+writeT3Field (T3BinaryField sign d) = write sign <> " " <> T.pack (C.unpack (encode d)) <> "\n"
+writeT3Field (T3StringField sign s) = write sign <> " " <> writeNulledLine s
+writeT3Field (T3MultilineField sign t) = write sign <> "\n" <> writeLines t
+writeT3Field (T3MultiStringField sign t) = write sign <> " " <> writeNames t
+writeT3Field (T3RefField sign z n) = write sign <> " " <> write z <> " " <> writeLine n
+writeT3Field (T3FloatField sign v) = write sign <> " " <> either (("x" <>) . write) (write . float2Double) v <> "\n"
+writeT3Field (T3IntField sign v) = write sign <> " " <> write v <> "\n"
+writeT3Field (T3ShortField sign v) = write sign <> " " <> write v <> "\n"
+writeT3Field (T3LongField sign v) = write sign <> " " <> write v <> "\n"
+writeT3Field (T3ByteField sign v) = write sign <> " " <> write v <> "\n"
+writeT3Field (T3CompressedField sign d) = write sign <> " " <> T.pack (C.unpack (encode d)) <> "\n"
 writeT3Field
   ( T3IngredientField sign
     ( T3IngredientData weight value
@@ -25,11 +41,11 @@ writeT3Field
       (T3IngredientAttributes a1 a2 a3 a4)
     )
   ) =
-  T.pack (show sign) <> "\n"
+  write sign <> "\n"
     <> "    " <> T.pack (show weight) <> " " <> T.pack (show value) <> "\n"
-    <> "    " <> T.pack (show e1) <> " " <> T.pack (show e2) <> " " <> T.pack (show e3) <> " " <> T.pack (show e4) <> "\n"
-    <> "    " <> T.pack (show s1) <> " " <> T.pack (show s2) <> " " <> T.pack (show s3) <> " " <> T.pack (show s4) <> "\n"
-    <> "    " <> T.pack (show a1) <> " " <> T.pack (show a2) <> " " <> T.pack (show a3) <> " " <> T.pack (show a4) <> "\n"
+    <> "    " <> write e1 <> " " <> write e2 <> " " <> write e3 <> " " <> T.pack (show e4) <> "\n"
+    <> "    " <> write s1 <> " " <> write s2 <> " " <> write s3 <> " " <> write s4 <> "\n"
+    <> "    " <> write a1 <> " " <> write a2 <> " " <> write a3 <> " " <> write a4 <> "\n"
 writeT3Field
   ( T3ScriptField sign
     ( T3ScriptHeader name
@@ -37,24 +53,36 @@ writeT3Field
       data_size var_table_size
     )
   ) =
-  T.pack (show sign)
+  write sign
     <> " " <> writeRun name
-    <> " " <> T.pack (show shorts) <> " " <> T.pack (show longs) <> " " <> T.pack (show floats)
-    <> " " <> T.pack (show data_size) <> " " <> T.pack (show var_table_size)
+    <> " " <> write shorts <> " " <> write longs <> " " <> write floats
+    <> " " <> write data_size <> " " <> write var_table_size
     <> "\n"
-writeT3Field (T3DialField sign t) = T.pack (show sign) <> either (\x -> if x == 0 then T.empty else " " <> T.pack (show x)) ((" " <> ) . writeEnum 2) t <> "\n"
-writeT3Field (T3NoneField sign) = T.pack (show sign) <> "\n"
+writeT3Field (T3DialField sign t) = write sign <> either (\x -> if x == 0 then T.empty else " " <> T.pack (show x)) ((" " <> ) . writeEnum 2) t <> "\n"
+writeT3Field (T3NoneField sign) = write sign <> "\n"
 writeT3Field (T3HeaderField sign (T3FileHeader version file_type author description))
-  =  T.pack (show sign) <> " " <> writeEnum 0 file_type <> " " <> T.pack (show version) <> "\n"
+  =  write sign <> " " <> writeEnum 0 file_type <> " " <> write version <> "\n"
   <> "    " <> writeLine author
   <> writeLines description
-writeT3Field (T3EssNpcField sign (T3EssNpcData disposition reputation index unknown))
-  =  T.pack (show sign)
-  <> " " <> T.pack (show index)
-  <> " " <> T.pack (show disposition)
-  <> " " <> T.pack (show reputation)
-  <> " " <> T.pack (show unknown)
+writeT3Field (T3EssNpcField sign (T3EssNpcData disposition reputation index))
+  =  write sign
+  <> " " <> write index
+  <> " " <> write disposition
+  <> " " <> write reputation
   <> "\n"
+writeT3Field (T3NpcField sign (T3NpcData level disposition reputation rank gold ch unknown)) =
+  let
+    char_text = case ch of
+      Nothing -> ""
+      Just n -> writeNpcChar n
+  in write sign
+  <> " " <> write level
+  <> " " <> write disposition
+  <> " " <> write reputation
+  <> " " <> write rank
+  <> " " <> write gold
+  <> " " <> write unknown
+  <> char_text <> "\n"
 
 writeT3Flags :: T3Flags -> Text
 writeT3Flags f =
@@ -65,7 +93,7 @@ writeT3Flags f =
 
 writeT3Record :: T3Record -> Text
 writeT3Record (T3Record sign fl fields)
-  =  T.pack (show sign) <> writeT3Flags fl <> "\n"
+  =  write sign <> writeT3Flags fl <> "\n"
   <> T.concat [writeT3Field f | f <- fields]
 
 conduitGet1 :: Monad m => Get e a -> ByteOffset -> ConduitM S.ByteString a m (Either (ByteOffset, Either String e) (ByteOffset, a))
