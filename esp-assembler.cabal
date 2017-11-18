@@ -8,7 +8,7 @@ license-file:        LICENSE
 author:              Warlock <internalmike@gmail.com>
 maintainer:          Warlock <internalmike@gmail.com>
 copyright:           2016, 2017 Warlock <internalmike@gmail.com>
-category:            Command Line Tool
+category:            CLI
 build-type:          Simple
 -- extra-source-files:
 cabal-version:       >=1.10
