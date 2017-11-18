@@ -7,16 +7,15 @@ license:             Apache
 license-file:        LICENSE
 author:              Warlock <internalmike@gmail.com>
 maintainer:          Warlock <internalmike@gmail.com>
-copyright:           2016 Warlock
-category:            Web
+copyright:           2016, 2017 Warlock <internalmike@gmail.com>
+category:            Command Line Tool
 build-type:          Simple
 -- extra-source-files:
 cabal-version:       >=1.10
 
 library
   hs-source-dirs: src
-  exposed-modules: Control.Error.Extensions
-                 , Data.Tes3.Assembler
+  exposed-modules: Data.Tes3.Assembler
                  , Data.Tes3.Assembler.Native
                  , Data.Tes3.Disassembler
                  , Data.Tes3.Disassembler.Native
@@ -67,6 +66,7 @@ library
                , MissingH
                , bytestring
                , errors
+               , errors-ext
                , transformers
                , containers
                , binary
@@ -191,6 +191,7 @@ test-suite esp-assembler-test
                , data-binary-ieee754
                , directory
                , errors
+               , errors-ext
                , esp-assembler
                , monad-loops
                , mono-traversable

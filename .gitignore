@@ -5,6 +5,7 @@
 *.esm
 *.test
 *.lkshs
+*.geany
 dist
 dist-*
 cabal-dev
