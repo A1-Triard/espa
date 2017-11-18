@@ -1,7 +1,7 @@
 name:                esp-assembler
 version:             0.10.1
-synopsis:            A tool for converting ESM/ESP/ESS files to and from text format. 
-description:         A tool for converting ESM/ESP/ESS files to and from text format. 
+synopsis:            A tool for converting ESM/ESP/ESS files to and from text format.
+description:         A tool for converting ESM/ESP/ESS files to and from text format.
 homepage:            https://github.com/A1-Triard/esp-assembler
 license:             Apache
 license-file:        LICENSE
@@ -16,15 +16,10 @@ cabal-version:       >=1.10
 library
   hs-source-dirs: src
   exposed-modules: Data.Tes3.Assembler
-                 , Data.Tes3.Assembler.Native
                  , Data.Tes3.Disassembler
-                 , Data.Tes3.Disassembler.Native
                  , Data.Tes3.Parser
-                 , Data.Tes3.Parser.Native
                  , Data.Tes3.Utils
-                 , Data.Tes3.Utils.Native
                  , Espa.Cli
-                 , Espa.Cli.Native
   other-modules: Paths_esp_assembler
   default-extensions: CPP
                     , TemplateHaskell
