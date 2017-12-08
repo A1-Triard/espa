@@ -19,6 +19,7 @@ module Data.Tes3.Disassembler
   ) where
 
 #include <haskell>
+import Data.Binary.Conduit.Get
 import Data.Tes3
 import Data.Tes3.Get
 import Data.Tes3.Utils
@@ -113,60 +114,16 @@ writeT3Record (T3Record sign fl fields)
   =  write sign <> writeT3Flags fl <> "\n"
   <> T.concat [writeT3Field f | f <- fields]
 
-conduitGet1 :: Monad m => Get e a -> ByteOffset -> ConduitM S.ByteString a m (Either (ByteOffset, Either String e) (ByteOffset, a))
-conduitGet1 g base_offset = do
-  go $ runGetIncremental base_offset g
-  where
-    go (G.Partial p) = do
-      inp <- await
-      go $ p inp
-    go (G.Done unused offset result) = do
-      yield result
-      if SB.null unused
-        then return ()
-        else leftover unused
-      return $ Right (offset, result)
-    go (G.Fail _ offset err) = do
-      return $ Left (offset, err)
-
-conduitGetN :: (Monad m, Num n) => Get e a -> (ByteOffset, n) -> ConduitM S.ByteString a m (Either (ByteOffset, Either String e) (ByteOffset, n))
-conduitGetN g (base_offset, n) = do
-  go $ runGetIncremental base_offset g
-  where
-    go (G.Partial p) = do
-      inp <- await
-      go $ p inp
-    go (G.Done unused offset result) = do
-      yield result
-      if SB.null unused
-        then return ()
-        else leftover unused
-      return $ Right (offset, n + 1)
-    go (G.Fail _ offset err) = do
-      return $ Left (offset, err)
-
-conduitRepeatE :: (Monad m, MonoFoldable seq) => a -> (a -> ConduitM seq r m (Either e a)) -> ConduitM seq r m (Either e a)
-conduitRepeatE a0 produce =
-  go a0
-  where
-    go an = do
-      end <- N.nullE
-      if end
-        then return $ Right an
-        else do
-          p <- produce an
-          case p of
-            Left err -> return $ Left err
-            Right an_1 -> go an_1
-
-disassembly :: Monad m => Bool -> (T3Sign -> Bool) -> Word32 -> ConduitM S.ByteString Text m (Either (ByteOffset, Either String (ByteOffset -> String)) ())
-disassembly adjust skip_record items_count = runExceptT $ do
+disassembly :: Monad m => Bool -> (T3Sign -> Bool) -> Word32 -> ConduitM S.ByteString Text m (Either (Word64 -> String) (), Word64)
+disassembly adjust skip_record items_count = runGet $ do
   let write_rec first (T3Record s a b) = if skip_record s then T.empty else (if first then "" else "\n") <> writeT3Record (T3Record s a b)
-  (r, _) <- (hoistEither =<<) $ lift $ mapOutput (write_rec True) $ conduitGet1 (getT3Record adjust) 0
-  (f, n) <- (hoistEither =<<) $ lift $ mapOutput (write_rec False) $ conduitRepeatE (r, 0) $ conduitGetN $ getT3Record adjust
+  yield =<< write_rec True <$> getT3Record adjust
+  (_, !n) <- (flip runStateT) 0 $ whileM_ (not <$> lift endOfInput) $ do
+    lift $ yield =<< write_rec False <$> getT3Record adjust
+    modify' (+ 1)
   if n > items_count
-    then hoistEither $ Left (f, Right $ const $ "Records count mismatch: no more than " ++ show items_count ++ " expected, but " ++ show n ++ " readed.")
+    then throwError $ const $ "Records count mismatch: no more than " ++ show items_count ++ " expected, but " ++ show n ++ " readed."
     else return ()
   if n /= items_count
-    then lift $ yield $ "\n" <> "# " <> T.pack (show items_count) <> "\n"
+    then yield $ "\n" <> "# " <> T.pack (show items_count) <> "\n"
     else return ()

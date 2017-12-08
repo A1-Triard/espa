@@ -19,6 +19,7 @@ module Espa.Cli (
   ) where
 
 #include <haskell>
+import Data.Binary.Conduit.Get
 import Paths_esp_assembler
 import Control.Error.Extensions
 import Data.Tes3
@@ -172,13 +173,13 @@ checkSignature header
   | SB.length header < fromIntegral signatureSize = Nothing
   | not (SB.isPrefixOf (SB.pack [0x54, 0x45, 0x53, 0x33]) header) = Nothing
   | not (SB.isPrefixOf (SB.pack [0, 0, 0, 0, 0, 0, 0, 0, 0x48, 0x45, 0x44, 0x52]) (SB.drop 8 header)) = Nothing
-  | otherwise = Just $ SG.runGet SG.getWord32le $ B.fromStrict $ SB.drop 320 header
+  | otherwise = either (const Nothing) Just $ fst $ runIdentity $ yield (SB.drop 320 header) $$ runGet getWord32le
 
 espaDisassembly :: Bool -> (T3Sign -> Bool) -> Verboser -> FilePath -> ExceptT IOError IO ()
 espaDisassembly adjust skip_record verbose name = do
   output_name <- hoistEither $ getDisassembliedFileName name
   tryIO $ verbose $ name ++ " -> " ++ output_name
-  r <-
+  (!r, !offset) <-
     withBinaryInputFile name $ \input -> do
       header <- tryIO $ SB.hGet input signatureSize
       items_count <- case checkSignature header of
@@ -189,11 +190,9 @@ espaDisassembly adjust skip_record verbose name = do
         runConduit $ (N.sourceHandle input =$= disassembly adjust skip_record items_count) `fuseUpstream` (N.concatMap T.toChunks =$= N.encode N.utf8 =$= N.sinkHandle output)
   case r of
     Right _ -> return ()
-    Left (offset, err) -> do
+    Left !e -> do
       tryIO $ removeFile output_name
-      case err of
-        Right e -> throwE $ userError $ name ++ ": " ++ e offset
-        Left e -> throwE $ userError $ name ++ ": " ++ "Internal error: " ++ showHex offset "h: " ++ e
+      throwE $ userError $ name ++ ": " ++ e offset
 
 espaAssemblyErrorText :: IOError -> String
 espaAssemblyErrorText e
@@ -212,7 +211,7 @@ espaAssembly verbose name = do
           Left e -> return $ Left e
           Right (file_type, n) -> do
             tryIO $ hSeek output AbsoluteSeek 320
-            tryIO $ B.hPut output $ runPut $ putWord32le n
+            tryIO $ B.hPut output $ S.runPut $ S.putWord32le n
             return $ Right file_type
   case r of
     Left e -> do

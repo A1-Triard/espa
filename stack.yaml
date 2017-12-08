@@ -15,7 +15,7 @@
 # resolver:
 #  name: custom-snapshot
 #  location: "./custom-snapshot.yaml"
-resolver: lts-8.20
+resolver: lts-9.14
 
 # User packages to be built.
 # Various formats can be used as shown in the example below.
@@ -39,14 +39,18 @@ packages:
 - '.'
 - location:
    git: https://github.com/A1-Triard/tes3.git
-   commit: 0.11.4
+   commit: 321d0b544e1ad805bb0bae13e06b327089e7fb71
+  extra-dep: true
+- location:
+   git: https://github.com/A1-Triard/binary-ext.git
+   commit: 57c93f4c85d865f81b2d08b69b221f3b777b4852
   extra-dep: true
 
 # Dependency packages to be pulled from upstream that are not in the resolver
 # (e.g., acme-missiles-0.3)
 extra-deps:
-- binary-ext-1.0.8.5.1
 - errors-ext-0.4.1
+#- binary-ext-1.0.8.5.1
 
 # Override default flag values for local packages and extra-deps
 flags: {}
