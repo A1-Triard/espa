@@ -23,20 +23,12 @@ import Data.Tes3
 import Data.Tes3.Parser
 import Data.Tes3.Put
 
-awaitE :: Monad m => ConduitM S.Text a m S.Text
-awaitE = do
-  maybe_inp <- await
-  case maybe_inp of
-    Nothing -> return ST.empty
-    Just (ST.null -> True) -> awaitE
-    Just inp -> return inp
-
 conduitParser1 :: Monad m => T.Parser a -> ConduitM S.Text a m (Either String a)
 conduitParser1 parser = do
   go $ TP.parse parser ""
   where
     go (TP.Partial p) = do
-      inp <- awaitE
+      !inp <- maybe ST.empty toNullable <$> N.awaitNonNull
       go $ p inp
     go (TP.Done unused result) = do
       yield result
@@ -52,7 +44,7 @@ conduitParserN parser n = do
   go $ TP.parse parser ""
   where
     go (TP.Partial p) = do
-      inp <- awaitE
+      !inp <- maybe ST.empty toNullable <$> N.awaitNonNull
       go $ p inp
     go (TP.Done unused result) = do
       case result of

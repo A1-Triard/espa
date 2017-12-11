@@ -107,14 +107,14 @@ pEscapedChar allow_semicolon allow_percent allow_spaces = do
   case c of
     '\r' -> fail "<r>"
     '\n' -> fail "<n>"
-    '\\' -> tail
+    '\\' -> special
     '\t' -> if allow_spaces then return '\t' else fail "tab"
     ' ' -> if allow_spaces then return ' ' else fail "space"
     '%' -> if allow_percent then return '%' else fail "percent"
     ';' -> if allow_semicolon then return ';' else fail "semicolon"
     s -> return s
   where
-    tail = do
+    special = do
       c <- Tp.anyChar
       case c of
         '0' -> return '\0'
