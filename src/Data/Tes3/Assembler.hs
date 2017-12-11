@@ -23,54 +23,23 @@ import Data.Tes3
 import Data.Tes3.Parser
 import Data.Tes3.Put
 
-conduitParser1 :: Monad m => T.Parser a -> ConduitM S.Text a m (Either String a)
-conduitParser1 parser = do
+conduit :: Monad m => T.Parser a -> ConduitM S.Text o (ExceptT String m) a
+conduit parser = do
   go $ TP.parse parser ""
   where
     go (TP.Partial p) = do
       !inp <- maybe ST.empty toNullable <$> N.awaitNonNull
       go $ p inp
     go (TP.Done unused result) = do
-      yield result
       if ST.null unused
         then return ()
         else leftover unused
-      return $ Right result
-    go (TP.Fail _ _ err) = do
-      return $ Left err
-
-conduitParserN :: (Monad m, Num n) => T.Parser (Maybe a) -> n -> ConduitM S.Text a m (Either String (Maybe n))
-conduitParserN parser n = do
-  go $ TP.parse parser ""
-  where
-    go (TP.Partial p) = do
-      !inp <- maybe ST.empty toNullable <$> N.awaitNonNull
-      go $ p inp
-    go (TP.Done unused result) = do
-      case result of
-        Nothing -> return ()
-        Just r -> yield r
+      return result
+    go (TP.Fail unused _ err) = do
       if ST.null unused
         then return ()
         else leftover unused
-      return $ Right $ if isJust result then Just (n + 1) else Nothing
-    go (TP.Fail _ c err) = do
-      return $ Left $ err ++ " (" ++ intercalate " -> " c ++ ")"
-
-conduitRepeatE :: (Monad m, MonoFoldable seq) => a -> (a -> ConduitM seq r m (Either e (Maybe a))) -> ConduitM seq r m (Either e a)
-conduitRepeatE a0 produce =
-  go a0
-  where
-    go an = do
-      end <- N.nullE
-      if end
-        then return $ Right an
-        else do
-          p <- produce an
-          case p of
-            Left err -> return $ Left err
-            Right (Just an_1) -> go an_1
-            Right Nothing -> return $ Right an
+      throwError err
 
 pMaybeT3Record :: T.Parser (Maybe T3Record)
 pMaybeT3Record = do
@@ -89,18 +58,30 @@ pRecordsNumber = do
   return n
 
 assembly :: Monad m => ConduitM S.Text ByteString m (Either String (T3FileType, Word32))
-assembly = runExceptT $ do
-  T3Record rs _ rfields <- (hoistEither =<<) $ lift $ mapOutput putT3Record $ conduitParser1 (pT3Record <?> "H")
+assembly = runExceptC $ do
+  T3Record rs rz rfields <- conduit (pT3Record <?> "H")
+  yield $ putT3Record $ T3Record rs rz rfields
   if rs /= T3Mark TES3
-    then hoistEither $ Left $ "Invalid file format."
+    then throwError "Invalid file format."
     else return ()
   file_type <- case rfields of
     (T3HeaderField (T3Mark HEDR) (T3FileHeader _ t _ _) : _) -> return t
-    _ -> hoistEither $ Left $ "Invalid file header."
-  n <- (hoistEither =<<) $ lift $ mapOutput putT3Record $ conduitRepeatE 0 $ conduitParserN (pMaybeT3Record <?> "R")
-  items_count <- (hoistEither =<<) $ lift $ mapOutput (const B.empty) $ conduitParser1 (Tp.option n pRecordsNumber <?> "RN")
+    _ -> throwError "Invalid file header."
+  n <- (flip execStateT) 0 $ untilJust $ do
+    end <- lift N.nullE
+    if end
+      then return $ Just ()
+      else do
+        !mr <- lift $ conduit (pMaybeT3Record <?> "R")
+        case mr of
+          Nothing -> return $ Just ()
+          Just !r -> do
+            modify' (+ 1)
+            lift $ yield $ putT3Record r
+            return Nothing
+  items_count <- conduit (Tp.option n pRecordsNumber <?> "RN")
   if items_count < n
-    then hoistEither $ Left $ "Records count mismatch: no more than " ++ show items_count ++ " expected, but " ++ show n ++ " readed."
+    then throwError $ "Records count mismatch: no more than " ++ show items_count ++ " expected, but " ++ show n ++ " readed."
     else return ()
-  (hoistEither =<<) $ lift $ mapOutput (const B.empty) $ conduitParser1 (Tp.endOfInput <?> "EOF")
+  conduit (Tp.endOfInput <?> "EOF")
   return (file_type, items_count)
