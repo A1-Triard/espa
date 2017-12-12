@@ -206,7 +206,7 @@ espaAssembly verbose name = do
   r <-
     withTextInputFile name $ \input -> do
       withBinaryOutputFile (output_name ++ ".es_") $ \output -> do
-        r <- runConduit $ (N.sourceHandle input =$= N.decode N.utf8 =$= assembly) `fuseUpstream` (N.concatMap B.toChunks =$= N.sinkHandle output)
+        r <- runConduit $ (N.sourceHandle input =$= N.decode N.utf8 =$= assembly) `fuseUpstream` N.sinkHandle output
         case r of
           Left e -> return $ Left e
           Right (file_type, n) -> do

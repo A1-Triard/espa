@@ -57,10 +57,10 @@ pRecordsNumber = do
   Tp.endOfLine
   return n
 
-assembly :: Monad m => ConduitM S.Text ByteString m (Either String (T3FileType, Word32))
+assembly :: Monad m => ConduitM S.Text S.ByteString m (Either String (T3FileType, Word32))
 assembly = runExceptC $ do
   T3Record rs rz rfields <- conduit (pT3Record <?> "H")
-  yield $ putT3Record $ T3Record rs rz rfields
+  runPut $ putT3Record $ T3Record rs rz rfields
   if rs /= T3Mark TES3
     then throwError "Invalid file format."
     else return ()
@@ -77,7 +77,7 @@ assembly = runExceptC $ do
           Nothing -> return $ Just ()
           Just !r -> do
             modify' (+ 1)
-            lift $ yield $ putT3Record r
+            lift $ runPut $ putT3Record r
             return Nothing
   items_count <- conduit (Tp.option n pRecordsNumber <?> "RN")
   if items_count < n

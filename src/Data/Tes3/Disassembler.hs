@@ -118,7 +118,7 @@ disassembly :: Monad m => Bool -> (T3Sign -> Bool) -> Word32 -> ConduitM S.ByteS
 disassembly adjust skip_record items_count = runGet $ do
   let write_rec first (T3Record s a b) = if skip_record s then T.empty else (if first then "" else "\n") <> writeT3Record (T3Record s a b)
   yield =<< write_rec True <$> getT3Record adjust
-  (_, !n) <- (flip runStateT) 0 $ whileM_ (not <$> lift endOfInput) $ do
+  (_, !n) <- (flip runStateT) 0 $ whileM_ (not <$> lift N.nullE) $ do
     lift $ yield =<< write_rec False <$> getT3Record adjust
     modify' (+ 1)
   if n > items_count
