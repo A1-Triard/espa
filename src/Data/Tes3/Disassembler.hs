@@ -15,7 +15,8 @@
 --
 
 module Data.Tes3.Disassembler
-  ( disassembly
+  ( T3DisassemblerError (..)
+  , disassembly
   ) where
 
 #include <haskell>
@@ -114,15 +115,21 @@ writeT3Record (T3Record sign fl fields)
   =  write sign <> writeT3Flags fl <> "\n"
   <> T.concat [writeT3Field f | f <- fields]
 
-disassembly :: Monad m => Bool -> (T3Sign -> Bool) -> Word32 -> ConduitM S.ByteString Text m (Either (Word64 -> String) (), Word64)
+data T3DisassemblerError = T3Error !T3Error | T3RecordsCountMismatch !Word32 !Word32
+
+instance Show T3DisassemblerError where
+  show (T3Error !e) = show e
+  show (T3RecordsCountMismatch expected actual) = concat ["Records count mismatch: no more than ", shows expected " expected, but ", shows actual " readed."]
+
+disassembly :: Monad m => Bool -> (T3Sign -> Bool) -> Word32 -> ConduitM S.ByteString Text m (Either T3DisassemblerError ())
 disassembly adjust skip_record items_count = runGet $ do
   let write_rec first (T3Record s a b) = if skip_record s then T.empty else (if first then "" else "\n") <> writeT3Record (T3Record s a b)
-  yield =<< write_rec True <$> getT3Record adjust
+  yield =<< write_rec True <$> mapError T3Error (getT3Record adjust)
   (_, !n) <- (flip runStateT) 0 $ whileM_ (not <$> lift N.nullE) $ do
-    lift $ yield =<< write_rec False <$> getT3Record adjust
+    lift $ yield =<< write_rec False <$> mapError T3Error (getT3Record adjust)
     modify' (+ 1)
   if n > items_count
-    then throwError $ const $ "Records count mismatch: no more than " ++ show items_count ++ " expected, but " ++ show n ++ " readed."
+    then throwError $ T3RecordsCountMismatch items_count n
     else return ()
   if n /= items_count
     then yield $ "\n" <> "# " <> T.pack (show items_count) <> "\n"

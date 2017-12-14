@@ -39,11 +39,11 @@ packages:
 - '.'
 - location:
    git: https://github.com/A1-Triard/tes3.git
-   commit: 295580f1f0b7b5029ba8b5e8276fed11562ddb99
+   commit: cbe707cee20333da2ce7b6fc41638eefce1effe7
   extra-dep: true
 - location:
    git: https://github.com/A1-Triard/binary-ext.git
-   commit: fd7e1d370e7bb5df997c355f3f6757668ea6ffe3
+   commit: 5e7a6c752cf6fc6c08c462d20fb3cde5782b2f2e
   extra-dep: true
 
 # Dependency packages to be pulled from upstream that are not in the resolver
