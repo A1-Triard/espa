@@ -19,7 +19,6 @@ module Espa.Cli (
   ) where
 
 #include <haskell>
-import Data.Binary.Conduit.Get
 import Paths_esp_assembler
 import Control.Error.Extensions
 import Data.Tes3
@@ -173,7 +172,7 @@ checkSignature header
   | SB.length header < fromIntegral signatureSize = Nothing
   | not (SB.isPrefixOf (SB.pack [0x54, 0x45, 0x53, 0x33]) header) = Nothing
   | not (SB.isPrefixOf (SB.pack [0, 0, 0, 0, 0, 0, 0, 0, 0x48, 0x45, 0x44, 0x52]) (SB.drop 8 header)) = Nothing
-  | otherwise = either (const Nothing) Just $ runIdentity $ yield (SB.drop 320 header) $$ runGet getWord32le
+  | otherwise = either (const Nothing) Just $ runConduitPure $ yield (SB.drop 320 header) .| runGet getWord32le
 
 espaDisassembly :: Bool -> (T3Sign -> Bool) -> Verboser -> FilePath -> ExceptT IOError IO ()
 espaDisassembly adjust skip_record verbose name = do
@@ -186,7 +185,7 @@ espaDisassembly adjust skip_record verbose name = do
       Just x -> return x
     tryIO $ hSeek input AbsoluteSeek 0
     withTextOutputFile output_name $ \output -> do
-      runConduit $ (N.sourceHandle input =$= disassembly adjust skip_record items_count) `fuseUpstream` (N.concatMap T.toChunks =$= N.encode N.utf8 =$= N.sinkHandle output)
+      runConduit $ (N.sourceHandle input .| disassembly adjust skip_record items_count) `fuseUpstream` (N.encode N.utf8 .| N.sinkHandle output)
   case r of
     Right () -> return ()
     Left !e -> do
@@ -205,7 +204,7 @@ espaAssembly verbose name = do
   r <-
     withTextInputFile name $ \input -> do
       withBinaryOutputFile (output_name ++ ".es_") $ \output -> do
-        r <- runConduit $ (N.sourceHandle input =$= N.decode N.utf8 =$= assembly) `fuseUpstream` N.sinkHandle output
+        r <- runConduit $ (N.sourceHandle input .| N.decode N.utf8 .| assembly) `fuseUpstream` N.sinkHandle output
         case r of
           Left e -> return $ Left e
           Right (file_type, n) -> do

@@ -34,30 +34,30 @@ tests = TestList
 
 writeRunTest :: Assertion
 writeRunTest = do
-  assertEqual "" "Qa\\ Bc\\ De" $ writeRun "Qa Bc De"
-  assertEqual "" "Qa\\ Bc\\ De\\ " $ writeRun "Qa Bc De "
-  assertEqual "" "Qa\\ Bc\\ \\rDe\\ " $ writeRun "Qa Bc \rDe "
-  assertEqual "" "\\x07\\x07\\x07\\\\\\ " $ writeRun "\7\7\7\\ "
+  assertEqual "" "Qa\\ Bc\\ De" $ runConduitPure $ runTextGen (genRun "Qa Bc De") .| N.sinkLazy
+  assertEqual "" "Qa\\ Bc\\ De\\ " $ runConduitPure $ runTextGen (genRun "Qa Bc De ") .| N.sinkLazy
+  assertEqual "" "Qa\\ Bc\\ \\rDe\\ " $ runConduitPure $ runTextGen (genRun "Qa Bc \rDe ") .| N.sinkLazy
+  assertEqual "" "\\x07\\x07\\x07\\\\\\ " $ runConduitPure $ runTextGen (genRun "\7\7\7\\ ") .| N.sinkLazy
 
 pRunTest :: Assertion
 pRunTest = do
-  assertEqual "" (Right "Qa Bc De") $ TP.parseOnly (pRun <* Tp.endOfInput) "Qa\\ Bc\\ De"
-  assertEqual "" (Right "Qa Bc De ") $ TP.parseOnly (pRun <* Tp.endOfInput) "Qa\\ Bc\\ De\\ "
-  assertEqual "" (Right "Qa Bc \rDe ") $ TP.parseOnly (pRun <* Tp.endOfInput) "Qa\\ Bc\\ \\rDe\\ "
-  assertEqual "" (Right "\7\7\7\\ ") $ TP.parseOnly (pRun <* Tp.endOfInput) "\\x07\\x07\\x07\\\\\\ "
+  assertEqual "" ((Right "Qa Bc De") :: Either Void Text) $ runConduitPure $ yield "Qa\\ Bc\\ De" .| runParser pRun
+  assertEqual "" ((Right "Qa Bc De ") :: Either Void Text) $ runConduitPure $ yield "Qa\\ Bc\\ De\\ " .| runParser pRun
+  assertEqual "" ((Right "Qa Bc \rDe ") :: Either Void Text) $ runConduitPure $ yield "Qa\\ Bc\\ \\rDe\\ " .| runParser pRun
+  assertEqual "" ((Right "\7\7\7\\ ") :: Either Void Text) $ runConduitPure $ yield "\\x07\\x07\\x07\\\\\\ " .| runParser pRun
 
 writeLinesTest :: Assertion
 writeLinesTest = do
-  assertEqual "" "    Qa Bc\n     De\n    \n    \n" $ writeLines ["Qa Bc", " De", "", ""]
+  assertEqual "" "    Qa Bc\n     De\n    \n    \n" $ runConduitPure $ runTextGen (genLines ["Qa Bc", " De", "", ""]) .| N.sinkLazy
 
 pLinesTest :: Assertion
 pLinesTest = do
-  assertEqual "" (Right ["Qa Bc", " De", "", ""]) $ TP.parseOnly (pLines <* Tp.endOfInput) "    Qa Bc\r\n     De\n    \n    \n"
+  assertEqual "" ((Right ["Qa Bc", " De", "", ""]) :: Either Void [Text]) $ runConduitPure $ yield "    Qa Bc\r\n     De\n    \n    \n" .| runParser pLines
 
 writeNamesTest :: Assertion
 writeNamesTest = do
-  assertEqual "" "abcd;Defg;;\n" $ writeNames ["abcd", "Defg", ""]
+  assertEqual "" "abcd;Defg;;\n" $ runConduitPure $ runTextGen (genNames ["abcd", "Defg", ""]) .| N.sinkLazy
 
 pNamesTest :: Assertion
 pNamesTest = do
-  assertEqual "" (Right ["abcd", "Defg", ""]) $ TP.parseOnly (pNames <* Tp.endOfInput) "abcd;Defg;;\n"
+  assertEqual "" (Right ["abcd", "Defg", ""]) $ runConduitPure $ yield "abcd;Defg;;\n" .| runParser pNames

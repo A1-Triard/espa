@@ -20,100 +20,96 @@ module Data.Tes3.Disassembler
   ) where
 
 #include <haskell>
-import Data.Binary.Conduit.Get
 import Data.Tes3
 import Data.Tes3.Get
 import Data.Tes3.Utils
 
-write :: Show a => a -> Text
-write = T.pack . show
+genNpcChar :: T3NpcDataChar -> TextGen
+genNpcChar d
+  =  " " <> genShow (t3NpcStrength d) >> " " <> genShow (t3NpcIntelligence d) >> " " <> genShow (t3NpcWillpower d) >> " " <> genShow (t3NpcAgility d)
+  >> " " <> genShow (t3NpcSpeed d) >> " " <> genShow (t3NpcEndurance d) >> " " <> genShow (t3NpcPersonality d) >> " " <> genShow (t3NpcLuck d)
+  >> " " <> genShow (t3NpcBlock d) >> " " <> genShow (t3NpcArmorer d) >> " " <> genShow (t3NpcMediumArmor d) >> " " <> genShow (t3NpcHeavyArmor d)
+  >> " " <> genShow (t3NpcBluntWeapon d) >> " " <> genShow (t3NpcLongBlade d) >> " " <> genShow (t3NpcAxe d) >> " " <> genShow (t3NpcSpear d)
+  >> " " <> genShow (t3NpcAthletics d) >> " " <> genShow (t3NpcEnchant d) >> " " <> genShow (t3NpcDestruction d) >> " " <> genShow (t3NpcAlteration d)
+  >> " " <> genShow (t3NpcIllusion d) >> " " <> genShow (t3NpcConjuration d) >> " " <> genShow (t3NpcMysticism d) >> " " <> genShow (t3NpcRestoration d)
+  >> " " <> genShow (t3NpcAlchemy d) >> " " <> genShow (t3NpcUnarmored d) >> " " <> genShow (t3NpcSecurity d) >> " " <> genShow (t3NpcSneak d)
+  >> " " <> genShow (t3NpcAcrobatics d) >> " " <> genShow (t3NpcLightArmor d) >> " " <> genShow (t3NpcShortBlade d) >> " " <> genShow (t3NpcMarksman d)
+  >> " " <> genShow (t3NpcMercantile d) >> " " <> genShow (t3NpcSpeechcraft d) >> " " <> genShow (t3NpcHandToHand d) >> " " <> genShow (t3NpcFaction d)
+  >> " " <> genShow (t3NpcHealth d) >> " " <> genShow (t3NpcMagicka d) >> " " <> genShow (t3NpcFatigue d)
 
-writeNpcChar :: T3NpcDataChar -> Text
-writeNpcChar d
-  =  " " <> write (t3NpcStrength d) <> " " <> write (t3NpcIntelligence d) <> " " <> write (t3NpcWillpower d) <> " " <> write (t3NpcAgility d)
-  <> " " <> write (t3NpcSpeed d) <> " " <> write (t3NpcEndurance d) <> " " <> write (t3NpcPersonality d) <> " " <> write (t3NpcLuck d)
-  <> " " <> write (t3NpcBlock d) <> " " <> write (t3NpcArmorer d) <> " " <> write (t3NpcMediumArmor d) <> " " <> write (t3NpcHeavyArmor d)
-  <> " " <> write (t3NpcBluntWeapon d) <> " " <> write (t3NpcLongBlade d) <> " " <> write (t3NpcAxe d) <> " " <> write (t3NpcSpear d)
-  <> " " <> write (t3NpcAthletics d) <> " " <> write (t3NpcEnchant d) <> " " <> write (t3NpcDestruction d) <> " " <> write (t3NpcAlteration d)
-  <> " " <> write (t3NpcIllusion d) <> " " <> write (t3NpcConjuration d) <> " " <> write (t3NpcMysticism d) <> " " <> write (t3NpcRestoration d)
-  <> " " <> write (t3NpcAlchemy d) <> " " <> write (t3NpcUnarmored d) <> " " <> write (t3NpcSecurity d) <> " " <> write (t3NpcSneak d)
-  <> " " <> write (t3NpcAcrobatics d) <> " " <> write (t3NpcLightArmor d) <> " " <> write (t3NpcShortBlade d) <> " " <> write (t3NpcMarksman d)
-  <> " " <> write (t3NpcMercantile d) <> " " <> write (t3NpcSpeechcraft d) <> " " <> write (t3NpcHandToHand d) <> " " <> write (t3NpcFaction d)
-  <> " " <> write (t3NpcHealth d) <> " " <> write (t3NpcMagicka d) <> " " <> write (t3NpcFatigue d)
-
-writeT3Field :: T3Field -> Text
-writeT3Field (T3BinaryField sign d) = write sign <> " " <> T.pack (C.unpack (encode d)) <> "\n"
-writeT3Field (T3StringField sign s) = write sign <> " " <> writeNulledLine s
-writeT3Field (T3MultilineField sign t) = write sign <> "\n" <> writeLines t
-writeT3Field (T3MultiStringField sign t) = write sign <> " " <> writeNames t
-writeT3Field (T3RefField sign z n) = write sign <> " " <> write z <> " " <> writeLine n
-writeT3Field (T3FloatField sign v) = write sign <> " " <> either (("x" <>) . write) (write . float2Double) v <> "\n"
-writeT3Field (T3IntField sign v) = write sign <> " " <> write v <> "\n"
-writeT3Field (T3ShortField sign v) = write sign <> " " <> write v <> "\n"
-writeT3Field (T3LongField sign v) = write sign <> " " <> write v <> "\n"
-writeT3Field (T3ByteField sign v) = write sign <> " " <> write v <> "\n"
-writeT3Field (T3CompressedField sign d) = write sign <> " " <> T.pack (C.unpack (encode d)) <> "\n"
-writeT3Field
+genT3Field :: T3Field -> TextGen
+genT3Field (T3BinaryField sign d) = genShow sign >> " " <> genLazyString (T.pack $ C.unpack $ encode d) >> "\n"
+genT3Field (T3StringField sign s) = genShow sign >> " " <> genNulledLine s
+genT3Field (T3MultilineField sign t) = genShow sign <> "\n" <> genLines t
+genT3Field (T3MultiStringField sign t) = genShow sign >> " " <> genNames t
+genT3Field (T3RefField sign z n) = genShow sign >> " " <> genShow z >> " " <> genLine n
+genT3Field (T3FloatField sign v) = genShow sign >> " " <> either (("x" <>) . genShow) (genShow . float2Double) v >> "\n"
+genT3Field (T3IntField sign v) = genShow sign >> " " <> genShow v >> "\n"
+genT3Field (T3ShortField sign v) = genShow sign >> " " <> genShow v >> "\n"
+genT3Field (T3LongField sign v) = genShow sign >> " " <> genShow v >> "\n"
+genT3Field (T3ByteField sign v) = genShow sign >> " " <> genShow v >> "\n"
+genT3Field (T3CompressedField sign d) = genShow sign >> " " <> genLazyString (T.pack $ C.unpack $ encode d) >> "\n"
+genT3Field
   ( T3IngredientField sign
     ( T3IngredientData weight value
       (T3IngredientEffects e1 e2 e3 e4)
       (T3IngredientSkills s1 s2 s3 s4)
       (T3IngredientAttributes a1 a2 a3 a4)
     )
-  ) =
-  write sign <> "\n"
-    <> "    " <> T.pack (show weight) <> " " <> T.pack (show value) <> "\n"
-    <> "    " <> write e1 <> " " <> write e2 <> " " <> write e3 <> " " <> T.pack (show e4) <> "\n"
-    <> "    " <> write s1 <> " " <> write s2 <> " " <> write s3 <> " " <> write s4 <> "\n"
-    <> "    " <> write a1 <> " " <> write a2 <> " " <> write a3 <> " " <> write a4 <> "\n"
-writeT3Field
+  )
+   = genShow sign <> "\n"
+  <> "    " >> genShow weight <> " " <> genShow value <> "\n"
+  <> "    " >> genShow e1 <> " " <> genShow e2 <> " " <> genShow e3 <> " " <> genShow e4 <> "\n"
+  <> "    " >> genShow s1 <> " " <> genShow s2 <> " " <> genShow s3 <> " " <> genShow s4 <> "\n"
+  <> "    " >> genShow a1 <> " " <> genShow a2 <> " " <> genShow a3 <> " " <> genShow a4 <> "\n"
+genT3Field
   ( T3ScriptField sign
     ( T3ScriptHeader name
       shorts longs floats
       data_size var_table_size
     )
-  ) =
-  write sign
-    <> " " <> writeRun name
-    <> " " <> write shorts <> " " <> write longs <> " " <> write floats
-    <> " " <> write data_size <> " " <> write var_table_size
-    <> "\n"
-writeT3Field (T3DialField sign t) = write sign <> either (\x -> if x == 0 then T.empty else " " <> T.pack (show x)) ((" " <> ) . writeEnum 2) t <> "\n"
-writeT3Field (T3NoneField sign) = write sign <> "\n"
-writeT3Field (T3HeaderField sign (T3FileHeader version file_type author description))
-  =  write sign <> " " <> writeEnum 0 file_type <> " " <> write version <> "\n"
-  <> "    " <> writeLine author
-  <> writeLines description
-writeT3Field (T3EssNpcField sign (T3EssNpcData disposition reputation index))
-  =  write sign
-  <> " " <> write index
-  <> " " <> write disposition
-  <> " " <> write reputation
+  )
+   = genShow sign
+  <> " " <> genRun name
+  <> " " <> genShow shorts >> " " <> genShow longs >> " " <> genShow floats
+  <> " " <> genShow data_size >> " " <> genShow var_table_size
   <> "\n"
-writeT3Field (T3NpcField sign (T3NpcData level disposition reputation rank gold ch)) =
+genT3Field (T3DialField sign t) =
+  genShow sign >> either (\x -> if x == 0 then return () else " " <> genShow x) ((" " <>) . genEnum 2) t <> "\n"
+genT3Field (T3NoneField sign) = genShow sign <> "\n"
+genT3Field (T3HeaderField sign (T3FileHeader version file_type author description))
+  =  genShow sign <> " " <> genEnum 0 file_type <> " " <> genShow version <> "\n"
+  <> "    " >> genLine author
+  >> genLines description
+genT3Field (T3EssNpcField sign (T3EssNpcData disposition reputation index))
+  =  genShow sign
+  >> " " <> genShow index
+  >> " " <> genShow disposition
+  >> " " <> genShow reputation
+  >> "\n"
+genT3Field (T3NpcField sign (T3NpcData level disposition reputation rank gold ch)) =
   let
     char_text = case ch of
-      Left x -> " (" <> write x <> ")"
-      Right n -> writeNpcChar n
-  in write sign
-  <> " " <> write level
-  <> " " <> write disposition
-  <> " " <> write reputation
-  <> " " <> write rank
-  <> " " <> write gold
-  <> char_text <> "\n"
+      Left x -> " (" <> genShow x <> ")"
+      Right n -> genNpcChar n
+  in genShow sign
+  >> " " <> genShow level
+  >> " " <> genShow disposition
+  >> " " <> genShow reputation
+  >> " " <> genShow rank
+  >> " " <> genShow gold
+  >> char_text >> "\n"
 
-writeT3Flags :: T3Flags -> Text
-writeT3Flags f =
-  ""
-  <> (if t3Deleted f then " Deleted" else "")
-  <> (if t3Blocked f then " Blocked" else "")
-  <> (if t3Persist f then " Persist" else "")
+genT3Flags :: T3Flags -> TextGen
+genT3Flags f
+  =  genString (if t3Deleted f then " Deleted" else "")
+  >> genString (if t3Blocked f then " Blocked" else "")
+  >> genString (if t3Persist f then " Persist" else "")
 
-writeT3Record :: T3Record -> Text
-writeT3Record (T3Record sign fl fields)
-  =  write sign <> writeT3Flags fl <> "\n"
-  <> T.concat [writeT3Field f | f <- fields]
+genT3Record :: T3Record -> TextGen
+genT3Record (T3Record sign fl fields)
+  =  genShow sign <> genT3Flags fl <> "\n"
+  <> forM_ fields genT3Field
 
 data T3DisassemblerError = T3Error !T3Error | T3RecordsCountMismatch !Word32 !Word32
 
@@ -121,16 +117,22 @@ instance Show T3DisassemblerError where
   show (T3Error !e) = show e
   show (T3RecordsCountMismatch expected actual) = concat ["Records count mismatch: no more than ", shows expected " expected, but ", shows actual " readed."]
 
-disassembly :: Monad m => Bool -> (T3Sign -> Bool) -> Word32 -> ConduitM S.ByteString Text m (Either T3DisassemblerError ())
+disassembly :: Monad m => Bool -> (T3Sign -> Bool) -> Word32 -> ConduitT S.ByteString S.Text m (Either T3DisassemblerError ())
 disassembly adjust skip_record items_count = runGet $ do
-  let write_rec first (T3Record s a b) = if skip_record s then T.empty else (if first then "" else "\n") <> writeT3Record (T3Record s a b)
-  yield =<< write_rec True <$> mapError T3Error (getT3Record adjust)
+  let
+    write_rec first (T3Record s a b) =
+      if skip_record s
+        then return ()
+        else (if first then return () else "\n") >> genT3Record (T3Record s a b)
+  first_rec <- mapError T3Error (getT3Record adjust)
+  runTextGen $ write_rec True first_rec
   (_, !n) <- (flip runStateT) 0 $ whileM_ (not <$> lift N.nullE) $ do
-    lift $ yield =<< write_rec False <$> mapError T3Error (getT3Record adjust)
+    rec <- lift $ mapError T3Error (getT3Record adjust)
+    lift $ runTextGen $ write_rec False rec
     modify' (+ 1)
   if n > items_count
     then throwError $ T3RecordsCountMismatch items_count n
     else return ()
   if n /= items_count
-    then yield $ "\n" <> "# " <> T.pack (show items_count) <> "\n"
+    then runTextGen $ "\n# " <> genShow items_count <> "\n"
     else return ()

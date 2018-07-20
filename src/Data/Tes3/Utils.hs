@@ -15,80 +15,26 @@
 --
 
 module Data.Tes3.Utils
-  ( writeNulledLine
+  ( genNulledLine
   , pNulledLine
-  , writeLine
+  , genLine
   , pLine
-  , writeNulledRun
+  , genNulledRun
   , pNulledRun
-  , writeRun
+  , genRun
   , pRun
-  , writeLines
+  , genLines
   , pLines
-  , writeNames
-  , writeEnum
+  , genNames
   , pNames
-  , pEnum
   , pT3Sign
   ) where
 
 #include <haskell>
 import Data.Tes3
 
-toHexDigit :: Integral a => a -> Char
-toHexDigit 0 = '0'
-toHexDigit 1 = '1'
-toHexDigit 2 = '2'
-toHexDigit 3 = '3'
-toHexDigit 4 = '4'
-toHexDigit 5 = '5'
-toHexDigit 6 = '6'
-toHexDigit 7 = '7'
-toHexDigit 8 = '8'
-toHexDigit 9 = '9'
-toHexDigit 10 = 'A'
-toHexDigit 11 = 'B'
-toHexDigit 12 = 'C'
-toHexDigit 13 = 'D'
-toHexDigit 14 = 'E'
-toHexDigit 15 = 'F'
-toHexDigit _ = 'i'
-
-pHexDigit :: Integral a => T.Parser a
-pHexDigit =
-  p_0 <|> p_1 <|> p_2 <|> p_3 <|> p_4 <|> p_5 <|> p_6 <|> p_7 <|> p_8 <|> p_9 <|> p_A <|> p_B <|> p_C <|> p_D <|> p_E <|> p_F
-  where
-    p_0 = Tp.char '0' >> return 0
-    p_1 = Tp.char '1' >> return 1
-    p_2 = Tp.char '2' >> return 2
-    p_3 = Tp.char '3' >> return 3
-    p_4 = Tp.char '4' >> return 4
-    p_5 = Tp.char '5' >> return 5
-    p_6 = Tp.char '6' >> return 6
-    p_7 = Tp.char '7' >> return 7
-    p_8 = Tp.char '8' >> return 8
-    p_9 = Tp.char '9' >> return 9
-    p_A = Tp.char 'A' >> return 10
-    p_B = Tp.char 'B' >> return 11
-    p_C = Tp.char 'C' >> return 12
-    p_D = Tp.char 'D' >> return 13
-    p_E = Tp.char 'E' >> return 14
-    p_F = Tp.char 'F' >> return 15
-
-toHexCode :: Char -> Text
-toHexCode c =
-  let o = ord c in
-  let (x1, x2) = o `divMod` 16 in
-  T.singleton (toHexDigit x1) <> T.singleton (toHexDigit x2)
-
-pHexCode :: T.Parser Char
-pHexCode = do
-  x1 <- pHexDigit
-  x2 <- pHexDigit
-  return $ chr $ x1 * 16 + x2
-
-writeEscapedChar :: Bool -> Bool -> Bool -> Char -> Text
-writeEscapedChar escape_semicolon escape_percent escape_spaces c
+genEscapedChar :: Bool -> Bool -> Bool -> Char -> TextGen
+genEscapedChar escape_semicolon escape_percent escape_spaces c
   | c == '\0' = "\\0"
   | c == '\\' = "\\\\"
   | c == '\r' = "\\r"
@@ -98,126 +44,123 @@ writeEscapedChar escape_semicolon escape_percent escape_spaces c
   | escape_spaces && c == ' ' = "\\ "
   | escape_spaces && c == '\t' = "\\t"
   | c == '\t' = "\t"
-  | ord c < 32 || ord c == 127 = "\\x" <> toHexCode c
-  | otherwise = T.singleton c
+  | ord c < 32 || ord c == 127 = "\\x" <> genHexByte True (fromIntegral $ ord c)
+  | otherwise = genString $ ST.singleton c
 
-pEscapedChar :: Bool -> Bool -> Bool -> T.Parser Char
+pEscapedChar :: Bool -> Bool -> Bool -> Parser () Char
 pEscapedChar allow_semicolon allow_percent allow_spaces = do
-  c <- Tp.anyChar
+  c <- pChar
   case c of
-    '\r' -> fail "<r>"
-    '\n' -> fail "<n>"
+    '\r' -> throwError ()
+    '\n' -> throwError ()
     '\\' -> special
-    '\t' -> if allow_spaces then return '\t' else fail "tab"
-    ' ' -> if allow_spaces then return ' ' else fail "space"
-    '%' -> if allow_percent then return '%' else fail "percent"
-    ';' -> if allow_semicolon then return ';' else fail "semicolon"
+    '\t' -> if allow_spaces then return '\t' else throwError ()
+    ' ' -> if allow_spaces then return ' ' else throwError ()
+    '%' -> if allow_percent then return '%' else throwError ()
+    ';' -> if allow_semicolon then return ';' else throwError ()
     s -> return s
   where
-    special = do
-      c <- Tp.anyChar
-      case c of
-        '0' -> return '\0'
-        '%' -> return '%'
-        ';' -> return ';'
-        'r' -> return '\r'
-        'n' -> return '\n'
-        't' -> return '\t'
-        '\\' -> return '\\'
-        ' ' -> return ' '
-        'x' -> pHexCode
-        _ -> return '\xFFFD'
+  special :: Parser () Char
+  special = do
+    c <- pChar
+    case c of
+      '0' -> return '\0'
+      '%' -> return '%'
+      ';' -> return ';'
+      'r' -> return '\r'
+      'n' -> return '\n'
+      't' -> return '\t'
+      '\\' -> return '\\'
+      ' ' -> return ' '
+      'x' -> (chr . fromIntegral) <$> pHexByte
+      _ -> throwError ()
 
-writeEscapedText :: Bool -> Bool -> Bool -> Text -> Text
-writeEscapedText escape_semicolon escape_percent escape_spaces = T.concat . map (writeEscapedChar escape_semicolon escape_percent escape_spaces) . T.unpack
+genEscapedText :: Bool -> Bool -> Bool -> Text -> TextGen
+genEscapedText escape_semicolon escape_percent escape_spaces =
+  mapM_ (genEscapedChar escape_semicolon escape_percent escape_spaces) . T.unpack
 
-pEscapedText :: Bool -> Bool -> Bool -> T.Parser Text
-pEscapedText allow_semicolon allow_percent allow_spaces = T.pack <$> many (pEscapedChar allow_semicolon allow_percent allow_spaces)
+pEscapedText :: Bool -> Bool -> Bool -> Parser e Text
+pEscapedText allow_semicolon allow_percent allow_spaces =
+  T.pack <$> many'' (pEscapedChar allow_semicolon allow_percent allow_spaces)
 
-writeNulledText :: Bool -> Text -> Text
-writeNulledText escape_spaces (T.stripSuffix "\0" -> Just s) = writeEscapedText False True escape_spaces s
-writeNulledText escape_spaces s = writeEscapedText False True escape_spaces s <> "%"
+genNulledText :: Bool -> Text -> TextGen
+genNulledText escape_spaces (T.stripSuffix "\0" -> Just s) = genEscapedText False True escape_spaces s
+genNulledText escape_spaces s = genEscapedText False True escape_spaces s >> "%"
 
-writeNulledLine :: Text -> Text
-writeNulledLine s = writeNulledText False s <> "\n"
+genNulledLine :: Text -> TextGen
+genNulledLine s = genNulledText False s >> "\n"
 
-writeNulledRun :: Text -> Text
-writeNulledRun = writeNulledText True
+genNulledRun :: Text -> TextGen
+genNulledRun = genNulledText True
 
-pNulledText :: Bool -> T.Parser Text
+pNulledText :: Bool -> Parser e Text
 pNulledText allow_spaces = do
   s <- pEscapedText True False allow_spaces
-  add_null <- Tp.option True (Tp.char '%' >> return False)
+  add_null <- maybe True (const False) <$> option'' (pCharIs '%')
   if add_null
     then return $ s <> "\0"
     else return s
 
-pNulledLine :: T.Parser Text
+pNulledLine :: Parser () Text
 pNulledLine = do
   s <- pNulledText True
-  Tp.endOfLine
+  skipEndOfLine
   return s
 
-pNulledRun :: T.Parser Text
+pNulledRun :: Parser e Text
 pNulledRun = pNulledText False
 
-writeText :: Bool -> Text -> Text
-writeText = writeEscapedText False False
+genText :: Bool -> Text -> TextGen
+genText = genEscapedText False False
 
-writeLine :: Text -> Text
-writeLine s = writeText False s <> "\n"
+genLine :: Text -> TextGen
+genLine s = genText False s >> "\n"
 
-writeRun :: Text -> Text
-writeRun = writeText True
+genRun :: Text -> TextGen
+genRun = genText True
 
-pText :: Bool -> T.Parser Text
+pText :: Bool -> Parser e Text
 pText = pEscapedText True True
 
-pLine :: T.Parser Text
+pLine :: Parser () Text
 pLine = do
   s <- pText True
-  Tp.endOfLine
+  skipEndOfLine
   return s
 
-pRun :: T.Parser Text
+pRun :: Parser e Text
 pRun = pText False
 
-writeLines :: [Text] -> Text
-writeLines = T.concat . map (\x -> "    " <> writeEscapedText False False False x <> "\n")
+genLines :: [Text] -> TextGen
+genLines = mapM_ (\ !x -> "    " <> genEscapedText False False False x <> "\n")
 
-pLines :: T.Parser [Text]
-pLines = many $ do
-  void $ Tp.string "    "
+pLines :: Parser e [Text]
+pLines = many'' $ do
+  skipStringIs "    "
   s <- pEscapedText True True True
-  Tp.endOfLine
+  skipEndOfLine
   return s
 
-writeNames :: [Text] -> Text
-writeNames names = (T.concat $ map (\x -> writeEscapedText True False False x <> ";") names) <> "\n"
+genNames :: [Text] -> TextGen
+genNames names = (forM_ names $ \ !x -> genEscapedText True False False x <> ";") >> "\n"
 
-pNames :: T.Parser [Text]
+pNames :: Parser () [Text]
 pNames = do
   s <- p
-  Tp.endOfLine
+  skipEndOfLine
   return s
   where
-    p = many $ do
-      s <- pEscapedText False True True
-      void $ Tp.char ';'
-      return s
+  p = many'' $ do
+    s <- pEscapedText False True True
+    skipCharIs ';'
+    return s
 
-writeEnum :: (Eq a, Ord a, Enum a, Bounded a, Show a) => Int -> a -> Text
-writeEnum prefix = T.pack . drop prefix . show
-
-pEnum :: (Eq a, Ord a, Enum a, Bounded a, Show a) => Int -> T.Parser a
-pEnum prefix = foldl1 (<|>) [Tp.string (ST.pack $ drop prefix $ show t) >> return t | t <- [minBound .. maxBound]]
-
-pT3Sign :: T.Parser T3Sign
+pT3Sign :: Parser () T3Sign
 pT3Sign = do
-  a <- Tp.anyChar
-  b <- Tp.anyChar
-  c <- Tp.anyChar
-  d <- Tp.anyChar
+  a <- pChar
+  b <- pChar
+  c <- pChar
+  d <- pChar
   return $ t3SignNew $ fromBytes (fromIntegral $ ord a) (fromIntegral $ ord b) (fromIntegral $ ord c) (fromIntegral $ ord d)
 
 fromBytes :: Word8 -> Word8 -> Word8 -> Word8 -> Word32

@@ -29,7 +29,7 @@ tests = TestList
   , TestCase parseInvalidFile
   ]
 
-testFile1Text :: S.Text
+testFile1Text :: Text
 testFile1Text
   =  "TES3\n"
   <> "HEDR ESP 1067869798\n"
@@ -52,7 +52,7 @@ testFile1Text
   <> "CTDT AgAAAAAAgD94AFgC\n"
   <> "CNAM _ale_dr_b_fC_la_20s%\n"
 
-invalidTestFileText :: S.Text
+invalidTestFileText :: Text
 invalidTestFileText
   =  "TES3\n"
   <> "HEDR ESP 1067869798\n"
@@ -75,14 +75,14 @@ invalidTestFileText
   <> "CTDT AgAAAAAAgD94AFgC\n"
   <> "CNAM _ale_dr_b_fC_la_20s%\n"
 
-testFile1 :: [T3Record]
-testFile1 =
-  [ T3Record (T3Mark TES3) t3FlagsEmpty
+testFile1 :: NonEmpty T3Record
+testFile1
+  = T3Record (T3Mark TES3) t3FlagsEmpty
     [ T3HeaderField (T3Mark HEDR) (T3FileHeader 1067869798 ESP "Ath" ["Descr descr descr."])
     , T3StringField (T3Mark MAST) "Morrowind.esm\0"
     , T3LongField (T3Mark DATA) 79764287
-    ]
-  , T3Record (T3Mark CLOT) t3FlagsEmpty
+    ] :|
+  [ T3Record (T3Mark CLOT) t3FlagsEmpty
     [ T3StringField (T3Mark NAME) "_ale_leather_skirt\0"
     , T3StringField (T3Mark MODL) "Aleanne\\dr_a_fC_la_25_gnd.nif\0"
     , T3StringField (T3Mark FNAM) "Длинная тога\0"
@@ -98,16 +98,13 @@ testFile1 =
     ]
   ]
 
-pT3File :: T.Parser [T3Record]
-pT3File = do
-  header <- pT3Record
-  records <- many (Tp.endOfLine *> pT3Record)
-  return (header : records)
+pT3File :: Parser () (NonEmpty T3Record)
+pT3File = sepBy1'' pT3Record skipEndOfLine <* endOfInput
 
 parseValidFile :: Assertion
 parseValidFile = do
-  assertEqual "" (Right testFile1) $ TP.parseOnly (pT3File <* Tp.endOfInput) testFile1Text
+  assertEqual "" (Right testFile1) $ runConduitPure $ N.sourceLazy testFile1Text .| runParser pT3File
 
 parseInvalidFile :: Assertion
 parseInvalidFile = do
-  assertEqual "" (Left "endOfInput") $ TP.parseOnly (pT3File <* Tp.endOfInput) invalidTestFileText
+  assertEqual "" (Left ()) $ runConduitPure $ N.sourceLazy invalidTestFileText .| runParser pT3File

@@ -22,44 +22,38 @@ module Data.Tes3.Assembler
 import Data.Tes3
 import Data.Tes3.Parser
 import Data.Tes3.Put
+import Data.Conduit.Parsers.GetC (runMaybeG, maybeG)
 
-conduit :: Monad m => T.Parser a -> ConduitM S.Text o (ExceptT String m) a
-conduit parser = do
-  go $ TP.parse parser ""
-  where
-    go (TP.Partial p) = do
-      !inp <- maybe ST.empty toNullable <$> N.awaitNonNull
-      go $ p inp
-    go (TP.Done unused result) = do
-      if ST.null unused
-        then return ()
-        else leftover unused
-      return result
-    go (TP.Fail unused _ err) = do
-      if ST.null unused
-        then return ()
-        else leftover unused
-      throwError err
-
-pMaybeT3Record :: T.Parser (Maybe T3Record)
-pMaybeT3Record = do
-  Tp.endOfLine
-  c <- Tp.peekChar
+pMaybeT3Record :: Parser () (Maybe T3Record)
+pMaybeT3Record = runMaybeG $ do
+  !e <- N.nullE
+  if e
+    then maybeG $ return Nothing
+    else return ()
+  skipEndOfLine
+  !c <- peekChar
   if c == Just '#'
-    then return Nothing
-    else Just <$> pT3Record
+    then maybeG $ return Nothing
+    else pT3Record
 
-pRecordsNumber :: T.Parser Word32
+pRecordsNumber :: Parser () Word32
 pRecordsNumber = do
-  void $ Tp.char '#'
-  void $ Tp.char ' '
-  n <- Tp.decimal
-  Tp.endOfLine
+  skipCharIs '#'
+  skipCharIs ' '
+  n <- pDecimal
+  skipEndOfLine
   return n
 
-assembly :: Monad m => ConduitM S.Text S.ByteString m (Either String (T3FileType, Word32))
-assembly = runExceptC $ do
-  T3Record rs rz rfields <- conduit (pT3Record <?> "H")
+lineColumnError :: String -> Parser Void String
+lineColumnError !m = do
+  !l <- linesRead
+  !c <- columnsRead
+  !p <- peekChar
+  return $ m ++ " at " ++ show (l + 1) ++ ":" ++ show (c + 1) ++ " (" ++ show p ++ ")."
+
+assembly :: Monad m => ConduitT S.Text S.ByteString m (Either String (T3FileType, Word32))
+assembly = runParser $ do
+  T3Record rs rz rfields <- pT3Record ?>> lineColumnError "record error"
   runPut $ putT3Record $ T3Record rs rz rfields
   if rs /= T3Mark TES3
     then throwError "Invalid file format."
@@ -68,20 +62,16 @@ assembly = runExceptC $ do
     (T3HeaderField (T3Mark HEDR) (T3FileHeader _ t _ _) : _) -> return t
     _ -> throwError "Invalid file header."
   n <- (flip execStateT) 0 $ untilJust $ do
-    end <- lift N.nullE
-    if end
-      then return $ Just ()
-      else do
-        !mr <- lift $ conduit (pMaybeT3Record <?> "R")
-        case mr of
-          Nothing -> return $ Just ()
-          Just !r -> do
-            modify' (+ 1)
-            lift $ runPut $ putT3Record r
-            return Nothing
-  items_count <- conduit (Tp.option n pRecordsNumber <?> "RN")
+    !mr <- lift $ pMaybeT3Record ?>> lineColumnError "record error"
+    case mr of
+      Nothing -> return $ Just ()
+      Just !r -> do
+        modify' (+ 1)
+        lift $ runPut $ putT3Record r
+        return Nothing
+  items_count <- fromMaybe n <$> option'' pRecordsNumber
   if items_count < n
     then throwError $ "Records count mismatch: no more than " ++ show items_count ++ " expected, but " ++ show n ++ " readed."
     else return ()
-  conduit (Tp.endOfInput <?> "EOF")
+  endOfInput ?>> lineColumnError "EOF error"
   return (file_type, items_count)

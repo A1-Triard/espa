@@ -9,6 +9,7 @@
 dist
 dist-*
 cabal-dev
+*.cabal
 *.o
 *.hi
 *.chi
