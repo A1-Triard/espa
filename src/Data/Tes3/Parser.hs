@@ -33,11 +33,11 @@ pT3Flags = do
   t <- whileM (maybe False (const True) <$> option'' (pCharIs ' ')) pT3Flag
   return $ foldr ($) t3FlagsEmpty t
 
-pT3Record :: Parser () T3Record
+pT3Record :: Parser String T3Record
 pT3Record = do
-  s <- pT3Sign
-  g <- pT3Flags
-  skipEndOfLine
+  s <- pT3Sign ?>> return "T3Sign"
+  g <- pT3Flags ?>> return "T3Flags"
+  skipEndOfLine ?>> return "EndOfLine"
   fields <- many'' $ t3Field s
   return $ T3Record s g fields
 

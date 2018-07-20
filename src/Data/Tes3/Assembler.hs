@@ -24,13 +24,13 @@ import Data.Tes3.Parser
 import Data.Tes3.Put
 import Data.Conduit.Parsers.GetC (runMaybeG, maybeG)
 
-pMaybeT3Record :: Parser () (Maybe T3Record)
+pMaybeT3Record :: Parser String (Maybe T3Record)
 pMaybeT3Record = runMaybeG $ do
   !e <- N.nullE
   if e
     then maybeG $ return Nothing
     else return ()
-  skipEndOfLine
+  skipEndOfLine ?>> return "EOL expected"
   !c <- peekChar
   if c == Just '#'
     then maybeG $ return Nothing
@@ -53,7 +53,7 @@ lineColumnError !m = do
 
 assembly :: Monad m => ConduitT S.Text S.ByteString m (Either String (T3FileType, Word32))
 assembly = runParser $ do
-  T3Record rs rz rfields <- pT3Record ?>> lineColumnError "record error"
+  T3Record rs rz rfields <- pT3Record ?=>> \e -> lineColumnError $ "First record error (" ++ e ++ ")."
   runPut $ putT3Record $ T3Record rs rz rfields
   if rs /= T3Mark TES3
     then throwError "Invalid file format."
@@ -62,7 +62,7 @@ assembly = runParser $ do
     (T3HeaderField (T3Mark HEDR) (T3FileHeader _ t _ _) : _) -> return t
     _ -> throwError "Invalid file header."
   n <- (flip execStateT) 0 $ untilJust $ do
-    !mr <- lift $ pMaybeT3Record ?>> lineColumnError "record error"
+    !mr <- lift $ pMaybeT3Record ?=>> \e -> lineColumnError $ "A record error (" ++ e ++ ")."
     case mr of
       Nothing -> return $ Just ()
       Just !r -> do
