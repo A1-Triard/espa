@@ -153,7 +153,7 @@ fn espa(
                 Err(e) => return Err(format!("{}: {}", input_name.to_string_lossy(), e)),
                 Ok(record) => {
                     let record = serde_yaml::to_string(&record).unwrap();
-                    output.write(&record.as_bytes()[4..]).map_err(|e| format!("{}", e))?;
+                    writeln!(output, "- {}", &record[4..]).map_err(|e| format!("{}", e))?;
                 }
             }
         }
