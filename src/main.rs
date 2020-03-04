@@ -169,13 +169,13 @@ fn espa(
     let mut input: Box<dyn BufRead> = if input_name == "-" {
         Box::new(stdin.lock())
     } else {
-        Box::new(BufReader::new(File::open(input_name).map_err(|e| format!("{}", e))?))
+        Box::new(BufReader::new(File::open(input_name).map_err(|e| format!("{}: {}", input_name.to_string_lossy(), e))?))
     };
     let stdout = stdout();
     let mut output: Box<dyn Write> = if input_name == "-" {
         Box::new(stdout.lock())
     } else {
-        Box::new(BufWriter::new(File::create(output_name).map_err(|e| format!("{}", e))?))
+        Box::new(BufWriter::new(File::create(&output_name).map_err(|e| format!("{}: {}", output_name.to_string_lossy(), e))?))
     };
     if let Some(newline) = disassemble {
         for record in Records::new(code_page, 0, &mut input) {
