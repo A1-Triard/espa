@@ -1,12 +1,17 @@
 use clap::{App, Arg, AppSettings};
 use std::ffi::OsStr;
 use std::borrow::Cow;
-//use esl::*;
+use esl::*;
 use esl::code::*;
-use std::io::{stderr, Write, stdout, stdin, BufRead, BufReader, BufWriter};
+use std::io::{Write, stdout, stdin, BufRead, BufReader, BufWriter};
 use std::mem::transmute;
-use esl::read::Records;
+use esl::read::*;
 use std::fs::File;
+
+#[cfg(target_os = "windows")]
+const DEFAULT_NEWLINE: &'static str = "dos";
+#[cfg(not(target_os = "windows"))]
+const DEFAULT_NEWLINE: &'static str = "unix";
 
 fn main() {
     let args = App::new("ESP Assembler/Disassembler")
@@ -66,6 +71,15 @@ fn main() {
             .long("keep")
             .help("keep (don't delete) input files")
         )
+        .arg(Arg::with_name("newline")
+            .short("n")
+            .long("newline")
+            .value_name("NL")
+            .possible_value("unix")
+            .possible_value("dos")
+            .requires("disassemble")
+            .help("newline style [default: dos]")
+        )
         .setting(AppSettings::DontCollapseArgsInUsage)
         .get_matches()
     ;
@@ -73,7 +87,15 @@ fn main() {
     let exclude = args.values_of("exclude").map_or_else(Vec::new, |v| v.collect());
     let include = args.values_of("include").map_or_else(Vec::new, |v| v.collect());
     let fit = args.is_present("fit");
-    let disassemble = args.is_present("disassemble");
+    let disassemble = if args.is_present("disassemble") {
+        Some(match args.value_of("newline").unwrap_or(DEFAULT_NEWLINE) {
+            "dos" => "\r\n",
+            "unix" => "\n",
+            _ => unreachable!()
+        })
+    } else {
+        None
+    };
     let verbose = args.is_present("verbose");
     let code_page = match args.value_of("code_page").unwrap() {
         "en" => CodePage::English,
@@ -82,7 +104,7 @@ fn main() {
     };
     for &file in files.iter() {
         if let Err(e) = espa(file, &exclude, &include, fit, disassemble, verbose, code_page) {
-            let _ = writeln!(stderr(), "{}.", e);
+            eprintln!("{}.", e);
         }
     }
 }
@@ -125,16 +147,24 @@ fn get_output_name(input_name: &OsStr, disassemble: bool) -> Result<Cow<OsStr>, 
     }
 }
 
+fn assembly_record(lines: &str, output: &mut dyn Write, code_page: CodePage) -> Result<(), String> {
+    let records: Vec<Record> = serde_yaml::from_str(&lines).map_err(|e| format!("{}", e))?;
+    for record in records.iter() {
+        serialize_into(record, output, code_page, false).map_err(|e| format!("{}", e))?;
+    }
+    Ok(())
+}
+
 fn espa(
     input_name: &OsStr,
     _exclude: &[&str],
     _include: &[&str],
     _fit: bool, 
-    disassemble: bool,
+    disassemble: Option<&str>,
     _verbose: bool,
     code_page: CodePage
 ) -> Result<(), String> { 
-    let output_name = get_output_name(input_name, disassemble)?;
+    let output_name = get_output_name(input_name, disassemble.is_some())?;
     let stdin = stdin();
     let mut input: Box<dyn BufRead> = if input_name == "-" {
         Box::new(stdin.lock())
@@ -147,18 +177,35 @@ fn espa(
     } else {
         Box::new(BufWriter::new(File::create(output_name).map_err(|e| format!("{}", e))?))
     };
-    if disassemble {
+    if let Some(newline) = disassemble {
         for record in Records::new(code_page, 0, &mut input) {
             match record {
                 Err(e) => return Err(format!("{}: {}", input_name.to_string_lossy(), e)),
                 Ok(record) => {
                     let record = serde_yaml::to_string(&record).unwrap();
-                    writeln!(output, "- {}", &record[4..]).map_err(|e| format!("{}", e))?;
+                    let record = record[4..].replace("\n", &(newline.to_string() + "  "));
+                    write!(output, "- {}{}", record, newline).map_err(|e| format!("{}", e))?;
                 }
             }
         }
     } else {
-        
+        let mut lines = String::with_capacity(128);
+        for line in input.lines() {
+            match line {
+                Err(e) => return Err(format!("{}: {}", input_name.to_string_lossy(), e)),
+                Ok(line) => {
+                    if line.chars().nth(0) == Some('-') && !lines.is_empty() {
+                        assembly_record(&lines, &mut output, code_page)?;
+                        lines.clear();
+                    }
+                    lines += &line;
+                    lines.push('\n');
+                }
+            }
+        }
+        if !lines.is_empty() {
+            assembly_record(&lines, &mut output, code_page)?;
+        }
     }
     Ok(())
 }
