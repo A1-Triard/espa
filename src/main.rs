@@ -220,14 +220,15 @@ fn main() {
     }
 }
 
-const YAML_SUFFIX: &'static OsStr = unsafe { transmute(".yaml") };
+const YAML_SUFFIX: &'static OsStr = unsafe { transmute("yaml") };
+const DOT: &'static OsStr = unsafe { transmute(".") };
 static ESL_SUFFIXES: &'static [&'static OsStr] = &[
-    unsafe { transmute(".ess") }, 
-    unsafe { transmute(".ESS") },
-    unsafe { transmute(".esp") },
-    unsafe { transmute(".ESP") },
-    unsafe { transmute(".esm") },
-    unsafe { transmute(".ESM") },
+    unsafe { transmute("ess") }, 
+    unsafe { transmute("ESS") },
+    unsafe { transmute("esp") },
+    unsafe { transmute("ESP") },
+    unsafe { transmute("esm") },
+    unsafe { transmute("ESM") },
 ];
 
 fn has_known_file_suffix(file: &Path) -> bool {
@@ -246,8 +247,9 @@ fn get_disassembled_name(input_name: &Path) -> Result<PathBuf, String> {
         return Err(format!("{} does not have known suffix, skipping", input_name.display()));
     }
     let input_file_name = input_name.file_name().unwrap();
-    let mut output_file_name: Vec<u8> = Vec::with_capacity(input_file_name.len() + YAML_SUFFIX.len());
+    let mut output_file_name: Vec<u8> = Vec::with_capacity(input_file_name.len() + DOT.len() + YAML_SUFFIX.len());
     output_file_name.extend_from_slice(unsafe { transmute(input_file_name) });
+    output_file_name.extend_from_slice(unsafe { transmute(DOT) });
     output_file_name.extend_from_slice(unsafe { transmute(YAML_SUFFIX) });
     let output_file_name: &OsStr = unsafe { transmute(&output_file_name[..]) };
     Ok(input_name.with_file_name(output_file_name))
