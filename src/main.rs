@@ -74,16 +74,15 @@ fn parse_args() -> (Options, Vec<Option<PathBuf>>) {
     let args = App::new("ESP Assembler/Disassembler")
         .version(env!("CARGO_PKG_VERSION"))
         .template("Usage: {usage}\n{about}\n\n{unified}\n\n{after-help}")
-        .after_help("<COND> can be in one of the following form: <RECORD_TAG>, <RECORD_TAG>:<FIELD_TAG>, or :<FIELD_TAG>\n\n\
-            Report bugs to <internalmike@gmail.com> (in English or Russian).\n\
-            ESP Assembler/Disassembler home page: <https://github.com/A1-Triard/esp-assembler>.\
+        .after_help("<COND> can be in one of the following form: <RECORD_TAG>, <RECORD_TAG>:<FIELD_TAG>, or :<FIELD_TAG>.\n\n\
+            When FILE is -, read standard input.\n\n\
+            Report bugs to <internalmike@gmail.com> (in English or Russian).\
         ")
         .about("Convert FILEs from the .esm/.esp/.ess format to YAML and back.")
         .help_message("display this help and exit")
         .version_message("display the version number and exit")
         .arg(Arg::with_name("FILE")
             .multiple(true)
-            .help("input file, '-' stands for standard input")
         )
         .arg(Arg::with_name("disassemble")
             .short("d")
