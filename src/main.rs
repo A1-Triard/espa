@@ -1,4 +1,7 @@
 #![feature(const_transmute)]
+#![feature(drain_filter)]
+#![deny(warnings)]
+
 use clap::{App, Arg, AppSettings, ArgMatches};
 use std::ffi::{OsStr, OsString};
 use esl::*;
@@ -12,7 +15,6 @@ use std::path::{Path, PathBuf};
 use either::{Either, Left, Right};
 use std::process::exit;
 use std::str::FromStr;
-use std::fmt::Display;
 
 #[cfg(target_os = "windows")]
 const DEFAULT_NEWLINE: &'static str = "dos";
@@ -29,6 +31,34 @@ struct Options {
     disassemble: Option<&'static str>,
     verbose: bool,
     code_page: CodePage,
+}
+
+impl Options {
+    fn skip_record(&self, record_tag: Tag) -> bool {
+        (!self.include_records.is_empty() && !self.include_records.contains(&record_tag)) ||
+        self.exclude_records.contains(&record_tag)
+    }
+
+    fn skip_field(&self, record_tag: Tag, field_tag: Tag) -> bool {
+        let predicate = |(r, f): &(Option<Tag>, Tag)| *f == field_tag && r.as_ref().map_or(true, |&r| r == record_tag);
+        
+        (!self.include_fields.is_empty() && !self.include_fields.iter().any(predicate)) ||
+            self.exclude_fields.iter().any(predicate)
+    }
+    
+    fn convert(&self, record: &mut Record) {
+        let record_tag = record.tag;
+        record.fields.drain_filter(|(field_tag, field)| {
+            if self.skip_field(record_tag, *field_tag) {
+                true
+            } else {
+                if self.fit {
+                    field.fit(record_tag, *field_tag);
+                }
+                false
+            }
+        });
+    }
 }
 
 fn parse_cond(value: &str) -> Result<Either<Tag, (Option<Tag>, Tag)>, String> {
@@ -243,12 +273,11 @@ fn get_output_name(input_name: &Path, disassemble: bool) -> Result<PathBuf, Stri
     }
 }
 
-fn with_path(out: bool, path: Option<&Path>, error: impl Display) -> String {
+fn display(out: bool, path: Option<&Path>) -> String {
     if let Some(path) = path {
-        format!("{}: {}", path.display(), error)
+        format!("{}", path.display())
     } else {
-        let name = if out { "<stdout>" } else { "<stdin>" };
-        format!("{}: {}", name, error)
+        if out { "<stdout>" } else { "<stdin>" }.into()
     }
 }
 
@@ -259,6 +288,9 @@ fn convert_file(input_name: Option<&Path>, options: &Options) -> Result<(), Stri
     } else {
         None
     };
+    if options.verbose {
+        eprintln!("{} -> {}", display(false, input_name), display(true, output_name.as_ref().map(|x| x.as_path())));
+    }
     let mut temp_name = None;
     let res = if let Err(e) = convert_records(input_name, output_name.as_ref().map(|x| x.as_path()), options, &mut temp_name) {
         Err(e)
@@ -309,8 +341,9 @@ fn convert_records(input_name: Option<&Path>, output_name: Option<&Path>, option
     if let Some(newline) = options.disassemble {
         for record in Records::new(options.code_page, 0, &mut input) {
             match record {
-                Err(e) => return Err(with_path(false, input_name, e)),
-                Ok(record) => {
+                Err(e) => return Err(format!("{}: {}", display(false, input_name), e)),
+                Ok(mut record) => if !options.skip_record(record.tag) {
+                    options.convert(&mut record);
                     let record = serde_yaml::to_string(&record).unwrap();
                     let record = record[4..].replace("\n", &(newline.to_string() + "  "));
                     write!(output, "- {}{}", record, newline).map_err(|e| format!("{}", e))?;
@@ -318,20 +351,21 @@ fn convert_records(input_name: Option<&Path>, output_name: Option<&Path>, option
             }
         }
     } else {
-        fn assembly_record(lines: &str, output: &mut dyn Write, code_page: CodePage) -> Result<(), String> {
+        fn assembly_record(lines: &str, output: &mut dyn Write, options: &Options) -> Result<(), String> {
             let records: Vec<Record> = serde_yaml::from_str(&lines).map_err(|e| format!("{}", e))?;
-            for record in records.iter() {
-                serialize_into(record, output, code_page, false).map_err(|e| format!("{}", e))?;
+            for mut record in records.into_iter().filter(|x| !options.skip_record(x.tag)) {
+                options.convert(&mut record);
+                serialize_into(&record, output, options.code_page, false).map_err(|e| format!("{}", e))?;
             }
             Ok(())
         }
         let mut lines = String::with_capacity(128);
         for line in input.lines() {
             match line {
-                Err(e) => return Err(with_path(false, input_name, e)),
+                Err(e) => return Err(format!("{}: {}", display(false, input_name), e)),
                 Ok(line) => {
                     if line.chars().nth(0) == Some('-') && !lines.is_empty() {
-                        assembly_record(&lines, &mut output, options.code_page)?;
+                        assembly_record(&lines, &mut output, options)?;
                         lines.clear();
                     }
                     lines += &line;
@@ -340,7 +374,7 @@ fn convert_records(input_name: Option<&Path>, output_name: Option<&Path>, option
             }
         }
         if !lines.is_empty() {
-            assembly_record(&lines, &mut output, options.code_page)?;
+            assembly_record(&lines, &mut output, options)?;
         }
     }
     Ok(())
