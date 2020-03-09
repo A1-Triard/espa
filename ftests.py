@@ -1,5 +1,6 @@
 from os import sys, mkdir, path, system, chdir, remove, rename
-from sys import exit
+from subprocess import check_call
+from sys import exit, stdout, stderr
 import wget
 from filecmp import cmp
 
@@ -11,9 +12,9 @@ def test(name, ext):
     remove('{}.test.{}'.format(name, ext))
   if path.exists('{}.test.{}.yaml'.format(name, ext)):
     remove('{}.test.{}.yaml'.format(name, ext))
-  system('cargo run -- -p ru -kvd "{}.{}"'.format(name, ext))
+  check_call('cargo run -- -p ru -kvd "{}.{}"'.format(name, ext), stdout=stdout, stderr=stderr)
   rename('{}.{}.yaml'.format(name, ext), '{}.test.{}.yaml'.format(name, ext))
-  system('cargo run -- -p ru -kv "{}.test.{}.yaml"'.format(name, ext))
+  check_call('cargo run -- -p ru -kv "{}.test.{}.yaml"'.format(name, ext), stdout=stdout, stderr=stderr)
   if not cmp('{}.{}'.format(name, ext), '{}.test.{}'.format(name, ext)):
     exit(1)
 

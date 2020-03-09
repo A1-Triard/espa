@@ -213,11 +213,14 @@ fn parse_args() -> (Options, Vec<Option<PathBuf>>) {
 
 fn main() {
     let (options, files) = parse_args();
+    let mut errors = false;
     for file in files.iter() {
         if let Err(e) = convert_file(file.as_ref().map(|x| x.as_path()), &options) {
+            errors = true;
             eprintln!("{}.", e);
         }
     }
+    if errors { exit(2) }
 }
 
 const YAML_SUFFIX: &'static OsStr = unsafe { transmute("yaml") };
