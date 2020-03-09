@@ -104,7 +104,7 @@ fn parse_args() -> (Options, Vec<Option<PathBuf>>) {
     let args = App::new("ESP Assembler/Disassembler")
         .version(env!("CARGO_PKG_VERSION"))
         .template("Usage: {usage}\n{about}\n\n{unified}\n\n{after-help}")
-        .after_help("<COND> can be in one of the following form: <RECORD_TAG>, <RECORD_TAG>:<FIELD_TAG>, or :<FIELD_TAG>.\n\n\
+        .after_help("<COND> can be in one of the following form: RECORD_TAG, RECORD_TAG>:FIELD_TAG, or :FIELD_TAG.\n\n\
             When FILE is -, read standard input.\n\n\
             Report bugs to <internalmike@gmail.com> (in English or Russian).\
         ")
