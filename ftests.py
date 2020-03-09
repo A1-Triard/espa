@@ -46,6 +46,7 @@ if not path.exists('Data Files/Bloodmoon.esm'):
   exit(1)
 
 test('Saves/Alchemy0000', 'ess')
+test('Saves/F0000', 'ess')
 test('Data Files/Aleanne Armor and Clothes 1+2', 'esp')
 test('Data Files/TravelingMerchants-1.2_1C', 'esp')
 test('Data Files/Morrowind', 'esm')
