@@ -1,6 +1,0 @@
-#!/bin/sh
-
-stack build || exit 1
-stack test || exit 1
-stack install . || exit 1
-ln -fs $HOME/.local/bin/espa $HOME/bin || exit 1
