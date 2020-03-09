@@ -110,7 +110,6 @@ fn parse_args() -> (Options, Vec<Option<PathBuf>>) {
         ")
         .about("Convert FILEs from the .esm/.esp/.ess format to YAML and back.")
         .help_message("display this help and exit")
-        .version_message("display the version number and exit")
         .arg(Arg::with_name("FILE")
             .multiple(true)
         )
@@ -128,6 +127,11 @@ fn parse_args() -> (Options, Vec<Option<PathBuf>>) {
             .short("f")
             .long("fit")
             .help("remove redundant trailing zeros and other garbage")
+        )
+        .arg(Arg::with_name("version")
+            .short("V")
+            .long("version")
+            .help("display the version number and exit")
         )
         .arg(Arg::with_name("exclude")
             .short("e")
@@ -149,7 +153,7 @@ fn parse_args() -> (Options, Vec<Option<PathBuf>>) {
             .value_name("LANG")
             .possible_value("en")
             .possible_value("ru")
-            .required(true)
+            .required_unless("version")
             .help("text code page")
         )
         .arg(Arg::with_name("keep")
@@ -175,6 +179,10 @@ fn parse_args() -> (Options, Vec<Option<PathBuf>>) {
         .setting(AppSettings::DontCollapseArgsInUsage)
         .get_matches()
     ;
+    if args.is_present("version") {
+        println!(env!("CARGO_PKG_VERSION"));
+        exit(0);
+    }
     let files = args.values_of_os("FILE").map_or_else(Vec::new, |v| v.map(|v| if v == HYPHEN {
         None
     } else {
