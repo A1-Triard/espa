@@ -9,3 +9,5 @@ esl = "0.0.4"
 clap = "2.33.0"
 encoding = "0.2.33"
 serde_yaml = "0.8.11"
+uuid = { version = "0.8.1", features = ["v4"] }
+either = "1.5.3"
