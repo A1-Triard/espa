@@ -1,6 +1,6 @@
 [package]
 name = "espa"
-version = "0.1.2"
+version = "0.1.4"
 authors = ["warlock <internalmike@gmail.com>"]
 description = "A tool for converting ESM/ESP/ESS files to and from text format."
 readme = "README.md"

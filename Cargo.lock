@@ -211,7 +211,7 @@ dependencies = [
 
 [[package]]
 name = "espa"
-version = "0.1.2"
+version = "0.1.4"
 dependencies = [
  "clap 2.33.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "either 1.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
