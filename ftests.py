@@ -4,7 +4,7 @@ from sys import exit, stdout, stderr
 import wget
 from filecmp import cmp
 
-def test(name, ext):
+def test(name, ext, lenient=False):
   print('{}.{}'.format(name, ext))
   if path.exists('{}.{}.yaml'.format(name, ext)):
     remove('{}.{}.yaml'.format(name, ext))
@@ -12,10 +12,17 @@ def test(name, ext):
     remove('{}.test.{}'.format(name, ext))
   if path.exists('{}.test.{}.yaml'.format(name, ext)):
     remove('{}.test.{}.yaml'.format(name, ext))
-  check_call('cargo run -- -p ru -kvd "{}.{}"'.format(name, ext), stdout=stdout, stderr=stderr)
-  rename('{}.{}.yaml'.format(name, ext), '{}.test.{}.yaml'.format(name, ext))
+  if lenient:
+    check_call('cargo run -- -p ru -kvdf "{}.{}"'.format(name, ext), stdout=stdout, stderr=stderr)
+    rename('{}.{}.yaml'.format(name, ext), '{}.fit.{}.yaml'.format(name, ext))
+    check_call('cargo run -- -p ru -vf "{}.fit.{}.yaml"'.format(name, ext), stdout=stdout, stderr=stderr)
+    source = '{}.fit.{}'.format(name, ext)
+  else:
+    source = '{}.{}'.format(name, ext)
+  check_call('cargo run -- -p ru -kvd "{}"'.format(source), stdout=stdout, stderr=stderr)
+  rename('{}.yaml'.format(source), '{}.test.{}.yaml'.format(name, ext))
   check_call('cargo run -- -p ru -kv "{}.test.{}.yaml"'.format(name, ext), stdout=stdout, stderr=stderr)
-  if not cmp('{}.{}'.format(name, ext), '{}.test.{}'.format(name, ext)):
+  if not cmp(source, '{}.test.{}'.format(name, ext)):
     exit(1)
 
 cd = path.dirname(path.realpath(__file__))
@@ -51,7 +58,7 @@ if not path.exists('Data Files/Bloodmoon.esm'):
 
 test('Saves/Alchemy0000', 'ess')
 test('Saves/F0000', 'ess')
-test('Data Files/Animal Behaviour', 'esp')
+test('Data Files/Animal Behaviour', 'esp', lenient=True)
 test('Data Files/Aleanne Armor and Clothes 1+2', 'esp')
 test('Data Files/TravelingMerchants-1.2_1C', 'esp')
 test('Data Files/Morrowind', 'esm')

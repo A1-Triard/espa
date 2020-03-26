@@ -352,7 +352,7 @@ fn convert_records(input_name: Option<&Path>, output_name: Option<&Path>, option
         }
     ;
     if let Some(newline) = options.disassemble {
-        for record in Records::new(options.code_page, 0, &mut input) {
+        for record in Records::new(options.code_page, if options.fit { RecordReadMode::Lenient } else { RecordReadMode::Strict }, 0, &mut input) {
             match record {
                 Err(e) => return Err(format!("{}: {}", display(false, input_name), e)),
                 Ok(mut record) => if !options.skip_record(record.tag) {
