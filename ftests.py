@@ -33,6 +33,10 @@ if not path.exists('Data Files/TravelingMerchants-1.2_1C.esp'):
   wget.download('http://www.fullrest.ru/uploads/files/TravelingMerchants-1.2_1C.rar', 'TravelingMerchants-1.2_1C.rar')
   system('unrar x -y TravelingMerchants-1.2_1C.rar')
 
+if not path.exists('Data Files/Animal Behaviour.esp'):
+  wget.download('https://www.fullrest.ru/uploads/files/AnimalRealism.rar', 'AnimalRealism.rar')
+  system('unrar x -y AnimalRealism.rar')
+
 if not path.exists('Data Files/Morrowind.esm'):
   print("Put Morrowind.esm into test_data/Data Files")
   exit(1)
@@ -47,6 +51,7 @@ if not path.exists('Data Files/Bloodmoon.esm'):
 
 test('Saves/Alchemy0000', 'ess')
 test('Saves/F0000', 'ess')
+test('Data Files/Animal Behaviour', 'esp')
 test('Data Files/Aleanne Armor and Clothes 1+2', 'esp')
 test('Data Files/TravelingMerchants-1.2_1C', 'esp')
 test('Data Files/Morrowind', 'esm')
