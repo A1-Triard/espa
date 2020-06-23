@@ -1,6 +1,6 @@
 [package]
 name = "espa"
-version = "0.2.1"
+version = "0.3.0"
 authors = ["warlock <internalmike@gmail.com>"]
 description = "A tool for converting ESM/ESP/ESS files to and from text format."
 readme = "README.md"
@@ -11,9 +11,9 @@ repository = "https://github.com/A1-Triard/espa"
 edition = "2018"
 
 [dependencies]
-esl = "0.3.1"
-clap = "2.33.0"
+esl = "0.4.0"
+clap = "2.33.1"
 encoding = "0.2.33"
-serde_yaml = "0.8.11"
+serde_yaml = "0.8.13"
 uuid = { version = "0.8.1", features = ["v4"] }
 either = "1.5.3"

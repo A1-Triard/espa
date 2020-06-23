@@ -1,6 +1,8 @@
 #![feature(const_transmute)]
 #![feature(drain_filter)]
 #![deny(warnings)]
+#![allow(clippy::collapsible_if)]
+#![allow(clippy::transmute_ptr_to_ptr)]
 
 use clap::{App, Arg, AppSettings, ArgMatches};
 use std::ffi::{OsStr, OsString};
@@ -17,9 +19,9 @@ use std::process::exit;
 use std::str::FromStr;
 
 #[cfg(target_os = "windows")]
-const DEFAULT_NEWLINE: &'static str = "dos";
+const DEFAULT_NEWLINE: &str = "dos";
 #[cfg(not(target_os = "windows"))]
-const DEFAULT_NEWLINE: &'static str = "unix";
+const DEFAULT_NEWLINE: &str = "unix";
 
 struct Options {
     exclude_records: Vec<Tag>,
@@ -98,7 +100,7 @@ fn parse_conds(args: &ArgMatches, name: &'static str) -> (Vec<Tag>, Vec<(Option<
     (records, fields)
 }
 
-const HYPHEN: &'static OsStr = unsafe { transmute("-") };
+const HYPHEN: &OsStr = unsafe { transmute("-") };
 
 fn parse_args() -> (Options, Vec<Option<PathBuf>>) {
     let args = App::new("ESP Assembler/Disassembler")
@@ -231,9 +233,9 @@ fn main() {
     if errors { exit(2) }
 }
 
-const YAML_SUFFIX: &'static OsStr = unsafe { transmute("yaml") };
-const DOT: &'static OsStr = unsafe { transmute(".") };
-static ESL_SUFFIXES: &'static [&'static OsStr] = &[
+const YAML_SUFFIX: &OsStr = unsafe { transmute("yaml") };
+const DOT: &OsStr = unsafe { transmute(".") };
+static ESL_SUFFIXES: &[&OsStr] = &[
     unsafe { transmute("ess") }, 
     unsafe { transmute("ESS") },
     unsafe { transmute("esp") },
@@ -280,9 +282,9 @@ fn get_assembled_name(input_name: &Path) -> Result<PathBuf, String> {
 
 fn get_output_name(input_name: &Path, disassemble: bool) -> Result<PathBuf, String> {
     if disassemble {
-        get_disassembled_name(input_name).map(|x| x.into())
+        get_disassembled_name(input_name)
     } else {
-        get_assembled_name(input_name).map(|x| x.into())
+        get_assembled_name(input_name)
     }
 }
 
@@ -302,10 +304,10 @@ fn convert_file(input_name: Option<&Path>, options: &Options) -> Result<(), Stri
         None
     };
     if options.verbose {
-        eprintln!("{} -> {}", display(false, input_name), display(true, output_name.as_ref().map(|x| x.as_path())));
+        eprintln!("{} -> {}", display(false, input_name), display(true, output_name.as_deref()));
     }
     let mut temp_name = None;
-    let res = if let Err(e) = convert_records(input_name, output_name.as_ref().map(|x| x.as_path()), options, &mut temp_name) {
+    let res = if let Err(e) = convert_records(input_name, output_name.as_deref(), options, &mut temp_name) {
         Err(e)
     } else {
         if let Some(temp_name) = &temp_name {
@@ -377,7 +379,7 @@ fn convert_records(input_name: Option<&Path>, output_name: Option<&Path>, option
             match line {
                 Err(e) => return Err(format!("{}: {}", display(false, input_name), e)),
                 Ok(line) => {
-                    if line.chars().nth(0) == Some('-') && !lines.is_empty() {
+                    if line.starts_with('-') && !lines.is_empty() {
                         assembly_record(&lines, &mut output, options)?;
                         lines.clear();
                     }
