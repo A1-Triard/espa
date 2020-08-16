@@ -1,17 +1,17 @@
 [package]
 name = "espa"
-version = "0.3.0"
+version = "0.3.1"
 authors = ["warlock <internalmike@gmail.com>"]
 description = "A tool for converting ESM/ESP/ESS files to and from text format."
 readme = "README.md"
 keywords = ["esm", "esp", "ess", "mw", "yaml"]
 categories = ["command-line-utilities", "encoding"]
-license = "MIT/Apache-2.0"
+license = "MIT OR Apache-2.0"
 repository = "https://github.com/A1-Triard/espa"
 edition = "2018"
 
 [dependencies]
-esl = "0.4.0"
+esl = "0.4.1"
 clap = "2.33.1"
 encoding = "0.2.33"
 serde_yaml = "0.8.13"

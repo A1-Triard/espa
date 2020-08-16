@@ -1,4 +1,3 @@
-#![feature(const_transmute)]
 #![feature(drain_filter)]
 #![deny(warnings)]
 #![allow(clippy::collapsible_if)]
