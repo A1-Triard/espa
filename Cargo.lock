@@ -179,9 +179,9 @@ checksum = "a246d82be1c9d791c5dfde9a2bd045fc3cbba3fa2b11ad558f27d01712f00569"
 
 [[package]]
 name = "enum-derive-2018"
-version = "0.3.1"
+version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bd49d4ab73a31186c330401a4187479207778857968fda37caf8c2105fcae4fc"
+checksum = "9e17833d4485e1beb3c5664f7b802a44e39f21a8c759691214725e5fae95aa70"
 
 [[package]]
 name = "enum-ordinalize"
@@ -209,9 +209,9 @@ dependencies = [
 
 [[package]]
 name = "esl"
-version = "0.6.0"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a5930482730d7c1b477b9358da87cc382c6e9cfe0ee811f9d91add3b8c93264f"
+checksum = "0688c0f498c1d9a2ed649ec41c53711467baa520628ead9b691ebd5923d82992"
 dependencies = [
  "base64",
  "bitflags",
@@ -232,7 +232,7 @@ dependencies = [
 
 [[package]]
 name = "espa"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "clap",
  "either",
@@ -301,9 +301,9 @@ checksum = "8dd5a6d5999d9907cda8ed67bbd137d3af8085216c2ac62de5be860bd41f304a"
 
 [[package]]
 name = "macro-attr-2018"
-version = "0.4.0"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dc511d66d3c219e93c6524360e687e832f25751d454d5e3b43b4a0df4ad4b5b4"
+checksum = "378b4c6f04246398f2c2ef0e2a67122cf75bc0dc72b546b549e51752205b723d"
 
 [[package]]
 name = "memchr"
