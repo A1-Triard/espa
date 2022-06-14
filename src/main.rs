@@ -1,22 +1,24 @@
 #![feature(drain_filter)]
+
 #![deny(warnings)]
+#![allow(clippy::collapsible_else_if)]
 #![allow(clippy::collapsible_if)]
 #![allow(clippy::transmute_ptr_to_ptr)]
 
 use clap::{Arg, ArgAction, ArgMatches, Command, value_parser};
 use clap::builder::PossibleValuesParser;
-use std::ffi::{OsStr, OsString};
+use either::{Either, Left, Right};
 use esl::*;
 use esl::code::*;
+use esl::read::*;
+use std::ffi::{OsStr, OsString};
+use std::fs::{File, remove_file, rename};
 use std::io::{Write, stdout, stdin, BufRead, BufReader, BufWriter};
 use std::mem::transmute;
-use esl::read::*;
-use std::fs::{File, remove_file, rename};
-use uuid::Uuid;
 use std::path::{Path, PathBuf};
-use either::{Either, Left, Right};
 use std::process::exit;
 use std::str::FromStr;
+use uuid::Uuid;
 
 #[cfg(target_os = "windows")]
 const DEFAULT_NEWLINE: &str = "dos";
@@ -373,14 +375,14 @@ fn convert_records(input_name: Option<&Path>, output_name: Option<&Path>, option
                 Ok(mut record) => if !options.skip_record(record.tag) {
                     options.convert(&mut record);
                     let record = serde_yaml::to_string(&record).unwrap();
-                    let record = record[4..].replace("\n", &(newline.to_string() + "  "));
+                    let record = record[4..].replace('\n', &(newline.to_string() + "  "));
                     write!(output, "- {}{}", record, newline).map_err(|e| format!("{}", e))?;
                 }
             }
         }
     } else {
         fn assembly_record(lines: &str, output: &mut dyn Write, options: &Options) -> Result<(), String> {
-            let records: Vec<Record> = serde_yaml::from_str(&lines).map_err(|e| format!("{}", e))?;
+            let records: Vec<Record> = serde_yaml::from_str(lines).map_err(|e| format!("{}", e))?;
             for mut record in records.into_iter().filter(|x| !options.skip_record(x.tag)) {
                 options.convert(&mut record);
                 serialize_into(&record, output, options.code_page, false).map_err(|e| format!("{}", e))?;
