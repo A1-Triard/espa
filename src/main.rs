@@ -3,7 +3,8 @@
 #![allow(clippy::collapsible_if)]
 #![allow(clippy::transmute_ptr_to_ptr)]
 
-use clap::{App, Arg, AppSettings, ArgMatches};
+use clap::{Arg, ArgAction, ArgMatches, Command};
+use clap::builder::PossibleValuesParser;
 use std::ffi::{OsStr, OsString};
 use esl::*;
 use esl::code::*;
@@ -84,7 +85,7 @@ fn parse_cond(value: &str) -> Result<Either<Tag, (Option<Tag>, Tag)>, String> {
 fn parse_conds(args: &ArgMatches, name: &'static str) -> (Vec<Tag>, Vec<(Option<Tag>, Tag)>) {
     let mut records = Vec::new();
     let mut fields = Vec::new();
-    if let Some(values) = args.values_of(name) {
+    if let Some(values) = args.get_many::<String>(name) {
         for value in values {
             match parse_cond(value) {
                 Ok(Left(record_tag)) => records.push(record_tag),
@@ -102,101 +103,113 @@ fn parse_conds(args: &ArgMatches, name: &'static str) -> (Vec<Tag>, Vec<(Option<
 const HYPHEN: &OsStr = unsafe { transmute("-") };
 
 fn parse_args() -> (Options, Vec<Option<PathBuf>>) {
-    let args = App::new("ESP Assembler/Disassembler")
+    let args = Command::new("ESP Assembler/Disassembler")
         .version(env!("CARGO_PKG_VERSION"))
-        .template("Usage: {usage}\n{about}\n\n{unified}\n\n{after-help}")
+        .disable_colored_help(true)
+        .help_template("Usage: {usage}\n{about}\n\n{options}\n\n{after-help}")
         .after_help("<COND> can be in one of the following form: RECORD_TAG, RECORD_TAG>:FIELD_TAG, or :FIELD_TAG.\n\n\
             When FILE is -, read standard input.\n\n\
             Report bugs to <internalmike@gmail.com> (in English or Russian).\
         ")
         .about("Convert FILEs from the .esm/.esp/.ess format to YAML and back.")
-        .help_message("display this help and exit")
-        .arg(Arg::with_name("FILE")
-            .multiple(true)
+        .mut_arg("help", |a| a.help("display this help and exit"))
+        .arg(Arg::new("FILE")
+            .action(ArgAction::Append)
         )
-        .arg(Arg::with_name("disassemble")
-            .short("d")
+        .arg(Arg::new("disassemble")
+            .short('d')
             .long("disassemble")
             .help("convert binary .es{s,p,m} file to YAML")
+            .action(ArgAction::SetTrue)
         )
-        .arg(Arg::with_name("verbose")
-            .short("v")
+        .arg(Arg::new("verbose")
+            .short('v')
             .long("verbose")
             .help("verbose mode")
+            .action(ArgAction::SetTrue)
         )
-        .arg(Arg::with_name("fit")
-            .short("f")
+        .arg(Arg::new("fit")
+            .short('f')
             .long("fit")
             .help("remove redundant trailing zeros and other garbage")
+            .action(ArgAction::SetTrue)
         )
-        .arg(Arg::with_name("version")
-            .short("V")
+        .arg(Arg::new("version")
+            .short('V')
             .long("version")
             .help("display the version number and exit")
+            .action(ArgAction::SetTrue)
         )
-        .arg(Arg::with_name("exclude")
-            .short("e")
+        .arg(Arg::new("exclude")
+            .short('e')
             .long("exclude")
-            .multiple(true)
+            .action(ArgAction::Append)
             .value_name("COND")
             .help("skip specified records/fields")
         )
-        .arg(Arg::with_name("include")
-            .short("i")
+        .arg(Arg::new("include")
+            .short('i')
             .long("include")
-            .multiple(true)
+            .action(ArgAction::Append)
             .value_name("COND")
             .help("skip all but specified records/fields")
         )
-        .arg(Arg::with_name("code_page")
-            .short("p")
+        .arg(Arg::new("code_page")
+            .short('p')
             .long("code-page")
             .value_name("LANG")
-            .possible_value("en")
-            .possible_value("ru")
-            .required_unless("version")
+            .value_parser(PossibleValuesParser::new([
+                "en",
+                "ru",
+            ]))
+            .required_unless_present("version")
             .help("text code page")
         )
-        .arg(Arg::with_name("keep")
-            .short("k")
+        .arg(Arg::new("keep")
+            .short('k')
             .long("keep")
             .help("keep (don't delete) input files")
+            .action(ArgAction::SetTrue)
         )
-        .arg(Arg::with_name("use_stdout")
-            .short("c")
+        .arg(Arg::new("use_stdout")
+            .short('c')
             .long("stdout")
             .conflicts_with("keep")
             .help("write on standard output, keep original files unchanged")
+            .action(ArgAction::SetTrue)
         )
-        .arg(Arg::with_name("newline")
-            .short("n")
+        .arg(Arg::new("newline")
+            .short('n')
             .long("newline")
             .value_name("NL")
-            .possible_value("unix")
-            .possible_value("dos")
+            .default_value(DEFAULT_NEWLINE)
+            .value_parser(PossibleValuesParser::new([
+                "unix",
+                "dos",
+            ]))
             .requires("disassemble")
-            .help("newline style [default: dos]")
+            .help("newline style")
         )
-        .setting(AppSettings::DontCollapseArgsInUsage)
+        .dont_collapse_args_in_usage(true)
         .get_matches()
     ;
-    if args.is_present("version") {
+    if *args.get_one("version").unwrap() {
         println!(env!("CARGO_PKG_VERSION"));
         exit(0);
     }
-    let files = args.values_of_os("FILE").map_or_else(Vec::new, |v| v.map(|v| if v == HYPHEN {
+    let files = args.get_many::<OsString>("FILE").map_or_else(Vec::new, |v| v.map(|v| if v == HYPHEN {
         None
     } else {
         Some(PathBuf::from(v))
     }).collect());
-    let fit = args.is_present("fit");
-    let keep = if args.is_present("use_stdout") {
+    let fit = *args.get_one("fit").unwrap();
+    let keep = if *args.get_one("use_stdout").unwrap() {
         None
     } else {
-        Some(args.is_present("keep"))
+        Some(*args.get_one("keep").unwrap())
     };
-    let disassemble = if args.is_present("disassemble") {
-        Some(match args.value_of("newline").unwrap_or(DEFAULT_NEWLINE) {
+    let disassemble = if *args.get_one("disassemble").unwrap() {
+        Some(match args.get_one::<String>("newline").unwrap().as_ref() {
             "dos" => "\r\n",
             "unix" => "\n",
             _ => unreachable!()
@@ -204,8 +217,8 @@ fn parse_args() -> (Options, Vec<Option<PathBuf>>) {
     } else {
         None
     };
-    let verbose = args.is_present("verbose");
-    let code_page = match args.value_of("code_page").unwrap() {
+    let verbose = *args.get_one("verbose").unwrap();
+    let code_page = match args.get_one::<String>("code_page").unwrap().as_ref() {
         "en" => CodePage::English,
         "ru" => CodePage::Russian,
         _ => unreachable!()
@@ -341,7 +354,7 @@ fn convert_records(input_name: Option<&Path>, output_name: Option<&Path>, option
         if let Some(input_name) = input_name {
             let input = Box::new(BufReader::new(File::open(input_name).map_err(|e| format!("{}: {}", input_name.display(), e))?));
             if let Some(output_name) = output_name {
-                let temp = input_name.with_file_name(&OsString::from(format!("{}", Uuid::new_v4().to_simple())));
+                let temp = input_name.with_file_name(&OsString::from(format!("{}", Uuid::new_v4().simple())));
                 let output = Box::new(BufWriter::new(File::create(&temp).map_err(|e| format!("{}: {}", output_name.display(), e))?));
                 temp_name.replace(temp);
                 (input, output)
