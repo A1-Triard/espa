@@ -13,15 +13,15 @@ def test(name, ext, lenient=False):
   if path.exists('{}.test.{}.yaml'.format(name, ext)):
     remove('{}.test.{}.yaml'.format(name, ext))
   if lenient:
-    check_call('cargo run -- -p ru -kvdf "{}.{}"'.format(name, ext), stdout=stdout, stderr=stderr)
+    check_call(['cargo', 'run', '--', '-p', 'ru', '-kvdf', '{}.{}'.format(name, ext)], stdout=stdout, stderr=stderr)
     rename('{}.{}.yaml'.format(name, ext), '{}.fit.{}.yaml'.format(name, ext))
-    check_call('cargo run -- -p ru -vf "{}.fit.{}.yaml"'.format(name, ext), stdout=stdout, stderr=stderr)
+    check_call(['cargo', 'run', '--', '-p', 'ru', '-vf', '{}.fit.{}.yaml'.format(name, ext)], stdout=stdout, stderr=stderr)
     source = '{}.fit.{}'.format(name, ext)
   else:
     source = '{}.{}'.format(name, ext)
-  check_call('cargo run -- -p ru -kvd "{}"'.format(source), stdout=stdout, stderr=stderr)
+  check_call(['cargo', 'run', '--', '-p', 'ru', '-kvd', source], stdout=stdout, stderr=stderr)
   rename('{}.yaml'.format(source), '{}.test.{}.yaml'.format(name, ext))
-  check_call('cargo run -- -p ru -kv "{}.test.{}.yaml"'.format(name, ext), stdout=stdout, stderr=stderr)
+  check_call(['cargo', 'run', '--', '-p', 'ru', '-kv', '{}.test.{}.yaml'.format(name, ext)], stdout=stdout, stderr=stderr)
   if not cmp(source, '{}.test.{}'.format(name, ext)):
     exit(1)
 

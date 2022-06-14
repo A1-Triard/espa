@@ -3,7 +3,7 @@
 #![allow(clippy::collapsible_if)]
 #![allow(clippy::transmute_ptr_to_ptr)]
 
-use clap::{Arg, ArgAction, ArgMatches, Command};
+use clap::{Arg, ArgAction, ArgMatches, Command, value_parser};
 use clap::builder::PossibleValuesParser;
 use std::ffi::{OsStr, OsString};
 use esl::*;
@@ -115,6 +115,7 @@ fn parse_args() -> (Options, Vec<Option<PathBuf>>) {
         .mut_arg("help", |a| a.help("display this help and exit"))
         .arg(Arg::new("FILE")
             .action(ArgAction::Append)
+            .value_parser(value_parser!(OsString))
         )
         .arg(Arg::new("disassemble")
             .short('d')
