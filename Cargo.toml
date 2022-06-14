@@ -10,6 +10,12 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/A1-Triard/espa"
 edition = "2018"
 
+[profile.release]
+codegen-units = 1
+lto = true
+panic = "abort"
+strip = true
+
 [dependencies]
 esl = "0.9.0"
 clap = "3.2.1"
