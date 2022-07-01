@@ -51,9 +51,9 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
 name = "clap"
-version = "3.2.7"
+version = "3.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5b7b16274bb247b45177db843202209b12191b631a14a9d06e41b3777d6ecf14"
+checksum = "190814073e85d238f31ff738fcb0bf6910cedeb73376c87cd69291028966fd83"
 dependencies = [
  "atty",
  "bitflags",
@@ -200,9 +200,9 @@ dependencies = [
 
 [[package]]
 name = "esl"
-version = "0.9.1"
+version = "0.9.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6626317e193834637e4f3c14134936e17cfbc8e3d491a424c9cf7fb9dc551bac"
+checksum = "ed5d2f8f1f228d6948c6b62380d637f3fb22872a8c319369a3b704a68ba2a7d1"
 dependencies = [
  "base64",
  "bitflags",
@@ -221,7 +221,7 @@ dependencies = [
 
 [[package]]
 name = "espa"
-version = "0.6.4"
+version = "0.6.5"
 dependencies = [
  "clap",
  "either",
