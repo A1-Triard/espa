@@ -3,6 +3,7 @@
 #![deny(warnings)]
 #![allow(clippy::collapsible_else_if)]
 #![allow(clippy::collapsible_if)]
+#![allow(clippy::question_mark)]
 #![allow(clippy::transmute_ptr_to_ptr)]
 
 use clap::{Arg, ArgAction, ArgMatches, Command, value_parser};
