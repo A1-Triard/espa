@@ -375,7 +375,7 @@ fn convert_records(input_name: Option<&Path>, output_name: Option<&Path>, option
                 Ok(mut record) => if !options.skip_record(record.tag) {
                     options.convert(&mut record);
                     let record = serde_yaml::to_string(&record).unwrap();
-                    let record = record[4..].replace('\n', &(newline.to_string() + "  "));
+                    let record = record.replace('\n', &(newline.to_string() + "  "));
                     write!(output, "- {}{}", record, newline).map_err(|e| format!("{}", e))?;
                 }
             }
