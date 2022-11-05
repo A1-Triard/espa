@@ -365,7 +365,7 @@ fn convert_records(input_name: Option<&Path>, output_name: Option<&Path>, option
         if let Some(input_name) = input_name {
             let input = Box::new(BufReader::new(File::open(input_name).map_err(|e| format!("{}: {}", input_name.display(), e))?));
             if let Some(output_name) = output_name {
-                let temp = input_name.with_file_name(&OsString::from(format!("{}", Uuid::new_v4().simple())));
+                let temp = input_name.with_file_name(OsString::from(format!("{}", Uuid::new_v4().simple())));
                 let output = Box::new(BufWriter::new(File::create(&temp).map_err(|e| format!("{}: {}", output_name.display(), e))?));
                 temp_name.replace(temp);
                 (input, output)
