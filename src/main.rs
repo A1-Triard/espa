@@ -12,6 +12,7 @@ use either::{Either, Left, Right};
 use esl::*;
 use esl::code::*;
 use esl::read::*;
+use std::env::current_exe;
 use std::ffi::{OsStr, OsString};
 use std::fs::{File, remove_file, rename};
 use std::io::{Write, stdout, stdin, BufRead, BufReader, BufWriter};
@@ -106,11 +107,16 @@ fn parse_conds(args: &ArgMatches, name: &'static str) -> (Vec<Tag>, Vec<(Option<
 const HYPHEN: &OsStr = unsafe { transmute("-") };
 
 fn parse_args() -> (Options, Vec<Option<PathBuf>>) {
-    let args = Command::new("ESP Assembler/Disassembler")
+    let app = current_exe().ok()
+        .and_then(|x| x.file_stem().map(|x| x.to_os_string()))
+        .and_then(|x| x.into_string().ok())
+        .map(|x| Box::leak(x.into_boxed_str()) as &str)
+        .unwrap_or("espa");
+    let args = Command::new(app)
         .version(env!("CARGO_PKG_VERSION"))
         .disable_colored_help(true)
-        .help_template("Usage: {usage}\n{about}\n\n{options}\n\n{after-help}")
-        .after_help("<COND> can be in one of the following form: RECORD_TAG, RECORD_TAG>:FIELD_TAG, or :FIELD_TAG.\n\n\
+        .help_template("Usage: {usage}\n\n{about}\n\n{options}{after-help}")
+        .after_help("<COND> can be in one of the following form: RECORD_TAG, RECORD_TAG:FIELD_TAG, or :FIELD_TAG.\n\n\
             When FILE is -, read standard input.\n\n\
             Report bugs to <internalmike@gmail.com> (in English or Russian).\
         ")
