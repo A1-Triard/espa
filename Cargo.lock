@@ -198,9 +198,9 @@ dependencies = [
 
 [[package]]
 name = "esl"
-version = "0.10.1"
+version = "0.10.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "331a89b63721535b0ef9b4111cfeb888cd1abc2b7db5f4ded102ff32f962780a"
+checksum = "dd4f2901244d193a3448febc9dfc35141147d5bcbbbb9be47fa046d6c28b752d"
 dependencies = [
  "base64",
  "bitflags",
@@ -219,7 +219,7 @@ dependencies = [
 
 [[package]]
 name = "espa"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "clap",
  "either",
