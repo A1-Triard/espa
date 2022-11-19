@@ -271,6 +271,7 @@ static ESL_SUFFIXES: &[&OsStr] = &[
     unsafe { transmute("ESP") },
     unsafe { transmute("esm") },
     unsafe { transmute("ESM") },
+    unsafe { transmute("omwsave") },
 ];
 
 fn has_known_file_suffix(file: &Path) -> bool {

@@ -1,7 +1,7 @@
 [package]
 edition = "2021"
 name = "espa"
-version = "0.7.3"
+version = "0.7.4"
 #rust-version = "nightly"
 authors = ["warlock <internalmike@gmail.com>"]
 description = "A tool for converting ESM/ESP/ESS files to and from text format."

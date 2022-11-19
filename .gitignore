@@ -6,5 +6,6 @@
 *.test.*
 *.esp
 *.esm
+*.omwsave
 *.test
 *.geany
