@@ -5,7 +5,7 @@ import lzma
 import wget
 from filecmp import cmp
 
-def test(name, ext, lenient=False):
+def test(name, ext, code_page, lenient=False):
   print('{}.{}'.format(name, ext))
   if path.exists('{}.{}.yaml'.format(name, ext)):
     remove('{}.{}.yaml'.format(name, ext))
@@ -14,18 +14,18 @@ def test(name, ext, lenient=False):
   if path.exists('{}.test.{}.yaml'.format(name, ext)):
     remove('{}.test.{}.yaml'.format(name, ext))
   if lenient:
-    check_call(['cargo', 'run', '--release', '--', '-p', 'ru', '-kvdf',
+    check_call(['cargo', 'run', '--release', '--', '-p', code_page, '-kvdf',
                 '{}.{}'.format(name, ext)], stdout=stdout, stderr=stderr)
     rename('{}.{}.yaml'.format(name, ext), '{}.fit.{}.yaml'.format(name, ext))
-    check_call(['cargo', 'run', '--release', '--', '-p', 'ru', '-vf',
+    check_call(['cargo', 'run', '--release', '--', '-p', code_page, '-vf',
                 '{}.fit.{}.yaml'.format(name, ext)], stdout=stdout, stderr=stderr)
     source = '{}.fit.{}'.format(name, ext)
   else:
     source = '{}.{}'.format(name, ext)
-  check_call(['cargo', 'run', '--release', '--', '-p', 'ru', '-kvd',
+  check_call(['cargo', 'run', '--release', '--', '-p', code_page, '-kvd',
               source], stdout=stdout, stderr=stderr)
   rename('{}.yaml'.format(source), '{}.test.{}.yaml'.format(name, ext))
-  check_call(['cargo', 'run', '--release', '--', '-p', 'ru', '-kv',
+  check_call(['cargo', 'run', '--release', '--', '-p', code_page, '-kv',
               '{}.test.{}.yaml'.format(name, ext)], stdout=stdout, stderr=stderr)
   if not cmp(source, '{}.test.{}'.format(name, ext)):
     exit(1)
@@ -67,14 +67,14 @@ if not path.exists('Saves/Quicksave.omwsave'):
   with open('Saves/Quicksave.omwsave', 'wb') as f:
     f.write(content)
 
-test('Saves/Quicksave', 'omwsave')
-test('Saves/Alchemy0000', 'ess')
-test('Saves/F0000', 'ess')
-test('Data Files/Animal Behaviour', 'esp', lenient=True)
-test('Data Files/Aleanne Armor and Clothes 1+2', 'esp')
-test('Data Files/TravelingMerchants-1.2_1C', 'esp')
-test('Data Files/Morrowind', 'esm')
-test('Data Files/Tribunal', 'esm')
-test('Data Files/Bloodmoon', 'esm')
+test('Saves/Quicksave', 'omwsave', 'un')
+test('Saves/Alchemy0000', 'ess', 'ru')
+test('Saves/F0000', 'ess', 'ru')
+test('Data Files/Animal Behaviour', 'esp', 'ru', lenient=True)
+test('Data Files/Aleanne Armor and Clothes 1+2', 'esp', 'ru')
+test('Data Files/TravelingMerchants-1.2_1C', 'esp', 'ru')
+test('Data Files/Morrowind', 'esm', 'ru')
+test('Data Files/Tribunal', 'esm', 'ru')
+test('Data Files/Bloodmoon', 'esm', 'ru')
  
 print('All tests passed.')
