@@ -69,19 +69,19 @@ impl Options {
 
 fn parse_cond(value: &str) -> Result<Either<Tag, (Option<Tag>, Tag)>, String> {
     let mut tags = value.split(':');
-    let record_tag = tags.next().ok_or_else(|| format!("invalid COND {:?}", value))?;
+    let record_tag = tags.next().ok_or_else(|| format!("invalid COND {value:?}"))?;
     let field_tag = tags.next();
-    if tags.next().is_some() { return Err(format!("invalid COND {:?}", value)); }
+    if tags.next().is_some() { return Err(format!("invalid COND {value:?}")); }
     let record_tag = if record_tag.is_empty() {
         None
     } else {
-        Some(Tag::from_str(record_tag).map_err(|()| format!("invalid tag {:?}", record_tag))?)
+        Some(Tag::from_str(record_tag).map_err(|()| format!("invalid tag {record_tag:?}"))?)
     };
     if let Some(field_tag) = field_tag {
-        let field_tag = Tag::from_str(field_tag).map_err(|()| format!("invalid tag {:?}", field_tag))?;
+        let field_tag = Tag::from_str(field_tag).map_err(|()| format!("invalid tag {field_tag:?}"))?;
         Ok(Right((record_tag, field_tag)))
     } else {
-        let record_tag = record_tag.ok_or_else(|| format!("invalid COND {:?}", value))?;
+        let record_tag = record_tag.ok_or_else(|| format!("invalid COND {value:?}"))?;
         Ok(Left(record_tag))
     }
 }
@@ -95,7 +95,7 @@ fn parse_conds(args: &ArgMatches, name: &'static str) -> (Vec<Tag>, Vec<(Option<
                 Ok(Left(record_tag)) => records.push(record_tag),
                 Ok(Right(field_cond)) => fields.push(field_cond),
                 Err(e) => {
-                    eprintln!("error: {}\n\nFor more information try --help", e);
+                    eprintln!("error: {e}\n\nFor more information try --help");
                     exit(1);
                 }
             }
@@ -258,7 +258,7 @@ fn main() {
     for file in files.iter() {
         if let Err(e) = convert_file(file.as_ref().map(|x| x.as_path()), &options) {
             errors = true;
-            eprintln!("{}.", e);
+            eprintln!("{e}.");
         }
     }
     if errors { exit(2) }
@@ -393,16 +393,16 @@ fn convert_records(input_name: Option<&Path>, output_name: Option<&Path>, option
                     options.convert(&mut record);
                     let record = serde_yaml::to_string(&record).unwrap();
                     let record = record.replace('\n', &(newline.to_string() + "  "));
-                    write!(output, "- {}{}", record, newline).map_err(|e| format!("{}", e))?;
+                    write!(output, "- {record}{newline}").map_err(|e| format!("{e}"))?;
                 }
             }
         }
     } else {
         fn assembly_record(lines: &str, output: &mut dyn Write, options: &Options) -> Result<(), String> {
-            let records: Vec<Record> = serde_yaml::from_str(lines).map_err(|e| format!("{}", e))?;
+            let records: Vec<Record> = serde_yaml::from_str(lines).map_err(|e| format!("{e}"))?;
             for mut record in records.into_iter().filter(|x| !options.skip_record(x.tag)) {
                 options.convert(&mut record);
-                serialize_into(&record, output, options.code_page, false).map_err(|e| format!("{}", e))?;
+                serialize_into(&record, output, options.code_page, false).map_err(|e| format!("{e}"))?;
             }
             Ok(())
         }
