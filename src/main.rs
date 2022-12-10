@@ -178,6 +178,7 @@ fn parse_args() -> (Options, Vec<Option<PathBuf>>) {
             .value_parser(PossibleValuesParser::new([
                 "en",
                 "ru",
+                "un",
             ]))
             .required_unless_present("version")
             .help("text code page")
@@ -238,6 +239,7 @@ fn parse_args() -> (Options, Vec<Option<PathBuf>>) {
     let code_page = match args.get_one::<String>("code_page").unwrap().as_ref() {
         "en" => CodePage::English,
         "ru" => CodePage::Russian,
+        "un" => CodePage::Unicode,
         _ => unreachable!()
     };
     let (exclude_records, exclude_fields) = parse_conds(&args, "exclude");
