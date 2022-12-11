@@ -369,7 +369,7 @@ fn convert_file(input_name: Option<&Path>, options: &Options) -> Result<(), Stri
     }
 }
 
-const BASE_64_FIELD_PATTERN: LazyLock<Regex> = LazyLock::new(|| Regex::new(
+static BASE_64_FIELD_PATTERN: LazyLock<Regex> = LazyLock::new(|| Regex::new(
     r"^- ([0-9A-Za-z][0-9A-Za-z][0-9A-Za-z][0-9A-Za-z]): ([0-9A-Za-z+/=]+)$"
 ).unwrap());
 
