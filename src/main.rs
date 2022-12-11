@@ -1,4 +1,5 @@
 #![feature(drain_filter)]
+#![feature(once_cell)]
 
 #![deny(warnings)]
 #![allow(clippy::collapsible_else_if)]
@@ -12,6 +13,8 @@ use either::{Either, Left, Right};
 use esl::*;
 use esl::code::*;
 use esl::read::*;
+use iter_identify_first_last::IteratorIdentifyFirstLastExt;
+use regex::Regex;
 use std::env::current_exe;
 use std::ffi::{OsStr, OsString};
 use std::fs::{File, remove_file, rename};
@@ -19,7 +22,8 @@ use std::io::{Write, stdout, stdin, BufRead, BufReader, BufWriter};
 use std::mem::transmute;
 use std::path::{Path, PathBuf};
 use std::process::exit;
-use std::str::FromStr;
+use std::str::{self, FromStr};
+use std::sync::LazyLock;
 use uuid::Uuid;
 
 #[cfg(target_os = "windows")]
@@ -365,6 +369,44 @@ fn convert_file(input_name: Option<&Path>, options: &Options) -> Result<(), Stri
     }
 }
 
+const BASE_64_FIELD_PATTERN: LazyLock<Regex> = LazyLock::new(|| Regex::new(
+    r"^- ([0-9A-Za-z][0-9A-Za-z][0-9A-Za-z][0-9A-Za-z]): ([0-9A-Za-z+/=]+)$"
+).unwrap());
+
+const BASE_64_FIELD_LINE_LIMIT: usize = 112;
+
+fn format_record_yaml(s: &str, newline: &str) -> String {
+    let mut res = String::with_capacity(s.len()); // at least
+    res.push_str("- ");
+    for (is_first, line) in s.trim_end_matches('\n').split('\n').identify_first() {
+        if !is_first { res.push_str("  "); }
+        let formatted = if line.len() > BASE_64_FIELD_LINE_LIMIT {
+            if let Some(captures) = BASE_64_FIELD_PATTERN.captures(line) {
+                res.push_str("- ");
+                res.push_str(captures.get(1).unwrap().as_str());
+                res.push_str(": \"");
+                let value = captures.get(2).unwrap().as_str();
+                for (is_first, is_last, chunk) in value.as_bytes().chunks(BASE_64_FIELD_LINE_LIMIT).identify_first_last() {
+                    if !is_first { res.push_str("           "); }
+                    res.push_str(str::from_utf8(chunk).unwrap());
+                    res.push(if is_last { '\"' } else { '\\' });
+                    res.push_str(newline);
+                }
+                true
+            } else {
+                false
+            }
+        } else {
+            false
+        };
+        if !formatted {
+            res.push_str(line);
+            res.push_str(newline);
+        }
+    }
+    res
+}
+
 fn convert_records(input_name: Option<&Path>, output_name: Option<&Path>, options: &Options, temp_name: &mut Option<PathBuf>)
     -> Result<(), String> {
     
@@ -386,14 +428,18 @@ fn convert_records(input_name: Option<&Path>, output_name: Option<&Path>, option
         }
     ;
     if let Some(newline) = options.disassemble {
-        for record in Records::new(options.code_page, if options.fit { RecordReadMode::Lenient } else { RecordReadMode::Strict }, 0, &mut input) {
+        let records = Records::new(
+            options.code_page,
+            if options.fit { RecordReadMode::Lenient } else { RecordReadMode::Strict }, 0, &mut input
+        );
+        for (is_first, record) in records.identify_first() {
             match record {
                 Err(e) => return Err(format!("{}: {}", display(false, input_name), e)),
                 Ok(mut record) => if !options.skip_record(record.tag) {
                     options.convert(&mut record);
                     let record = serde_yaml::to_string(&record).unwrap();
-                    let record = record.replace('\n', &(newline.to_string() + "  "));
-                    write!(output, "- {record}{newline}").map_err(|e| format!("{e}"))?;
+                    if !is_first { write!(output, "{newline}").map_err(|e| format!("{e}"))?; }
+                    write!(output, "{}", format_record_yaml(&record, newline)).map_err(|e| format!("{e}"))?;
                 }
             }
         }

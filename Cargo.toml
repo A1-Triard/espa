@@ -18,12 +18,14 @@ panic = "abort"
 strip = true
 
 [dependencies]
-esl = "0.12.0"
 clap = "4.0.14"
+either = "1.8.0"
 encoding = "0.2.33"
+esl = "0.12.0"
+iter-identify_first_last = "0.0.1"
+regex = "1.7.0"
 serde_yaml = "0.9.10"
 uuid = { version = "1.1.2", features = ["v4"] }
-either = "1.8.0"
 
 [badges]
 maintenance = { status = "actively-developed" }
