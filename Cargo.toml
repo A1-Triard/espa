@@ -1,7 +1,7 @@
 [package]
 edition = "2021"
 name = "espa"
-version = "0.8.0"
+version = "0.9.0"
 #rust-version = "nightly"
 authors = ["warlock <internalmike@gmail.com>"]
 description = "A tool for converting ESM/ESP/ESS files to and from text format."
@@ -18,7 +18,7 @@ panic = "abort"
 strip = true
 
 [dependencies]
-esl = "0.11.2"
+esl = "0.12.0"
 clap = "4.0.14"
 encoding = "0.2.33"
 serde_yaml = "0.9.10"
