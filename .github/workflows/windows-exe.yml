@@ -1,0 +1,27 @@
+name: WindowsExe
+
+on: workflow_dispatch
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  main:
+    strategy:
+      fail-fast: false
+    runs-on: "windows-latest"
+    steps:
+    - uses: egor-tensin/setup-mingw@v2
+      with:
+        platform: x86
+    - uses: actions-rs/toolchain@v1
+      with:
+        toolchain: nightly
+        override: true
+    - run: "rustup target add i686-pc-windows-gnu"
+    - uses: actions/checkout@v2
+    - run: "cargo build --verbose --target=i686-pc-windows-gnu --release"
+    - uses: actions/upload-artifact@v3
+      with:
+        name: windows-exe
+        path: target/i686-pc-windows-gnu/release/espb.exe
