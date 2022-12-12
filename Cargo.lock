@@ -229,9 +229,9 @@ dependencies = [
 
 [[package]]
 name = "esl"
-version = "0.13.0"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f178d0e1090569093564f60c91caf4a0671f7376d4b81140fcb822f3574f1eb6"
+checksum = "7f8a9121b1caf28d372a2cd112374708d8eb01329a63849a5a8e16842366184b"
 dependencies = [
  "base64",
  "bitflags",
