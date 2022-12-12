@@ -18,6 +18,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "arrayvec"
+version = "0.7.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8da52d66c7071e2e3fa2a1e5c6d088fec47b593032b254f5e980de8ea54454d6"
+
+[[package]]
 name = "autocfg"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -223,9 +229,9 @@ dependencies = [
 
 [[package]]
 name = "esl"
-version = "0.12.0"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0402d1e923fdf6ee80f3065aee700db77aecdc75fe1e8f17ef7d27b95eba3cb2"
+checksum = "f178d0e1090569093564f60c91caf4a0671f7376d4b81140fcb822f3574f1eb6"
 dependencies = [
  "base64",
  "bitflags",
@@ -240,16 +246,18 @@ dependencies = [
  "nameof",
  "nom",
  "serde",
+ "utf8-chars",
 ]
 
 [[package]]
 name = "espa"
-version = "0.9.1"
+version = "0.10.0"
 dependencies = [
  "clap",
  "either",
  "encoding",
  "esl",
+ "indoc",
  "iter-identify_first_last",
  "regex",
  "serde_yaml",
@@ -301,6 +309,12 @@ dependencies = [
  "autocfg",
  "hashbrown",
 ]
+
+[[package]]
+name = "indoc"
+version = "1.0.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "adab1eaa3408fb7f0c777a73e7465fd5656136fc93b670eb6df3c88c2c1344e3"
 
 [[package]]
 name = "io-lifetimes"
@@ -499,18 +513,18 @@ checksum = "e25dfac463d778e353db5be2449d1cce89bd6fd23c9f1ea21310ce6e5a1b29c4"
 
 [[package]]
 name = "serde"
-version = "1.0.149"
+version = "1.0.150"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "256b9932320c590e707b94576e3cc1f7c9024d0ee6612dfbcf1cb106cbe8e055"
+checksum = "e326c9ec8042f1b5da33252c8a37e9ffbd2c9bef0155215b6e6c80c790e05f91"
 dependencies = [
  "serde_derive",
 ]
 
 [[package]]
 name = "serde_derive"
-version = "1.0.149"
+version = "1.0.150"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b4eae9b04cbffdfd550eb462ed33bc6a1b68c935127d008b27444d08380f94e4"
+checksum = "42a3df25b0713732468deadad63ab9da1f1fd75a48a15024b50363f128db627e"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -567,6 +581,15 @@ name = "unsafe-libyaml"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c1e5fa573d8ac5f1a856f8d7be41d390ee973daf97c806b2c1a465e4e1406e68"
+
+[[package]]
+name = "utf8-chars"
+version = "2.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "437bc4a6a3acdb2a99491b19ec1c2131a536d9f1d7da112341ec5c9e5f4dfc3a"
+dependencies = [
+ "arrayvec",
+]
 
 [[package]]
 name = "uuid"

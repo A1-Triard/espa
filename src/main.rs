@@ -13,6 +13,7 @@ use either::{Either, Left, Right};
 use esl::*;
 use esl::code::*;
 use esl::read::*;
+use indoc::indoc;
 use iter_identify_first_last::IteratorIdentifyFirstLastExt;
 use regex::Regex;
 use std::env::current_exe;
@@ -33,9 +34,9 @@ const DEFAULT_NEWLINE: &str = "unix";
 
 struct Options {
     exclude_records: Vec<Tag>,
-    exclude_fields: Vec<(Option<Tag>, Tag)>,
+    exclude_fields: Vec<(Option<Tag>, Option<Tag>, Tag)>,
     include_records: Vec<Tag>,
-    include_fields: Vec<(Option<Tag>, Tag)>,
+    include_fields: Vec<(Option<Tag>, Option<Tag>, Tag)>,
     fit: bool,
     keep: Option<bool>,
     disassemble: Option<&'static str>,
@@ -49,48 +50,63 @@ impl Options {
         self.exclude_records.contains(&record_tag)
     }
 
-    fn skip_field(&self, record_tag: Tag, field_tag: Tag) -> bool {
-        let predicate = |(r, f): &(Option<Tag>, Tag)| *f == field_tag && r.as_ref().map_or(true, |&r| r == record_tag);
-        
+    fn skip_field(&self, record_tag: Tag, prev_tag: Tag, field_tag: Tag) -> bool {
+        let predicate = |(r, p, f): &(Option<Tag>, Option<Tag>, Tag)|
+            *f == field_tag && p.as_ref().map_or(true, |&p| p == prev_tag) && r.as_ref().map_or(true, |&r| r == record_tag)
+        ;
         (!self.include_fields.is_empty() && !self.include_fields.iter().any(predicate)) ||
-            self.exclude_fields.iter().any(predicate)
+        self.exclude_fields.iter().any(predicate)
     }
     
     fn convert(&self, record: &mut Record) {
         let record_tag = record.tag;
+        let mut prev_tag = META;
         record.fields.drain_filter(|(field_tag, field)| {
-            if self.skip_field(record_tag, *field_tag) {
+            let res = if self.skip_field(record_tag, prev_tag, *field_tag) {
                 true
             } else {
                 if self.fit {
-                    field.fit(record_tag, *field_tag);
+                    field.fit(record_tag, prev_tag, *field_tag);
                 }
                 false
-            }
+            };
+            prev_tag = *field_tag;
+            res
         });
     }
 }
 
-fn parse_cond(value: &str) -> Result<Either<Tag, (Option<Tag>, Tag)>, String> {
-    let mut tags = value.split(':');
-    let record_tag = tags.next().ok_or_else(|| format!("invalid COND {value:?}"))?;
-    let field_tag = tags.next();
-    if tags.next().is_some() { return Err(format!("invalid COND {value:?}")); }
-    let record_tag = if record_tag.is_empty() {
+fn parse_tag(value: &str) -> Result<Option<Tag>, String> {
+    Ok(if value.is_empty() {
         None
     } else {
-        Some(Tag::from_str(record_tag).map_err(|()| format!("invalid tag {record_tag:?}"))?)
+        Some(Tag::from_str(value).map_err(|()| format!("invalid tag {value:?}"))?)
+    })
+}
+
+fn parse_cond(value: &str) -> Result<Either<Tag, (Option<Tag>, Option<Tag>, Tag)>, String> {
+    let mut tags = value.split(':');
+    let record_tag = tags.next().ok_or_else(|| format!("invalid COND {value:?}"))?;
+    let (prev_tag, field_tag) = if let Some(prev_tag) = tags.next() {
+        let field_tag = tags.next().ok_or_else(|| format!("invalid COND {value:?}"))?;
+        if tags.next().is_some() { return Err(format!("invalid COND {value:?}")); }
+        (prev_tag, field_tag)
+    } else {
+        ("", "")
     };
+    let record_tag = parse_tag(record_tag)?;
+    let prev_tag = parse_tag(prev_tag)?;
+    let field_tag = parse_tag(field_tag)?;
     if let Some(field_tag) = field_tag {
-        let field_tag = Tag::from_str(field_tag).map_err(|()| format!("invalid tag {field_tag:?}"))?;
-        Ok(Right((record_tag, field_tag)))
+        Ok(Right((record_tag, prev_tag, field_tag)))
     } else {
         let record_tag = record_tag.ok_or_else(|| format!("invalid COND {value:?}"))?;
+        if prev_tag.is_some() { return Err(format!("invalid COND {value:?}")); }
         Ok(Left(record_tag))
     }
 }
 
-fn parse_conds(args: &ArgMatches, name: &'static str) -> (Vec<Tag>, Vec<(Option<Tag>, Tag)>) {
+fn parse_conds(args: &ArgMatches, name: &'static str) -> (Vec<Tag>, Vec<(Option<Tag>, Option<Tag>, Tag)>) {
     let mut records = Vec::new();
     let mut fields = Vec::new();
     if let Some(values) = args.get_many::<String>(name) {
@@ -120,10 +136,18 @@ fn parse_args() -> (Options, Vec<Option<PathBuf>>) {
         .version(env!("CARGO_PKG_VERSION"))
         .disable_colored_help(true)
         .help_template("Usage: {usage}\n\n{about}\n\n{options}{after-help}")
-        .after_help("<COND> can be in one of the following form: RECORD_TAG, RECORD_TAG:FIELD_TAG, or :FIELD_TAG.\n\n\
-            When FILE is -, read standard input.\n\n\
-            Report bugs to <internalmike@gmail.com> (in English or Russian).\
-        ")
+        .after_help(indoc!("
+            <COND> can be in one of the following forms:
+                RECORD_TAG
+                RECORD_TAG::FIELD_TAG
+                ::FIELD_TAG
+                RECORD_TAG:PREV_TAG:FIELD_TAG
+                :PREV_TAG:FIELD_TAG
+
+            When FILE is -, read standard input.
+
+            Report bugs to <internalmike@gmail.com> (in English or Russian).
+        "))
         .about("Convert FILEs from the .esm/.esp/.ess format to YAML and back.")
         .disable_help_flag(true)
         .arg(Arg::new("help")
