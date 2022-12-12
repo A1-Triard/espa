@@ -6,6 +6,7 @@
 #![allow(clippy::collapsible_if)]
 #![allow(clippy::question_mark)]
 #![allow(clippy::transmute_ptr_to_ptr)]
+#![allow(clippy::type_complexity)]
 
 use clap::{Arg, ArgAction, ArgMatches, Command, value_parser};
 use clap::builder::PossibleValuesParser;
