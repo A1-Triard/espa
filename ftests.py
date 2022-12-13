@@ -67,6 +67,13 @@ if not path.exists('Saves/Quicksave.omwsave'):
   with open('Saves/Quicksave.omwsave', 'wb') as f:
     f.write(content)
 
+if not path.exists('Saves/164.omwsave'):
+  with lzma.open('Saves/164.omwsave.xz') as f:
+    content = f.read()
+  with open('Saves/164.omwsave', 'wb') as f:
+    f.write(content)
+
+test('Saves/164', 'omwsave', 'un')
 test('Saves/Quicksave', 'omwsave', 'un')
 test('Saves/Alchemy0000', 'ess', 'ru')
 test('Saves/F0000', 'ess', 'ru')
