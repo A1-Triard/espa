@@ -18,6 +18,7 @@ use iter_identify_first_last::IteratorIdentifyFirstLastExt;
 use regex::Regex;
 use std::env::current_exe;
 use std::ffi::{OsStr, OsString};
+use std::fmt::{self, Display, Formatter};
 use std::fs::{File, remove_file, rename};
 use std::io::{Write, stdout, stdin, BufRead, BufReader, BufWriter};
 use std::mem::transmute;
@@ -46,8 +47,8 @@ struct Options {
 }
 
 impl Options {
-    fn is_valid_record(&self, record: &Record) -> bool {
-        self.allow_blank_records || !record.flags.is_empty() || !record.fields.is_empty()
+    fn is_blank_record(&self, record: &Record) -> bool {
+        record.flags.is_empty() && record.fields.is_empty()
     }
 
     fn records_filter(&self, record_tag: Tag) -> bool {
@@ -65,14 +66,14 @@ impl Options {
             && !self.exclude_fields.iter().any(predicate)
     }
 
-    fn convert(&self, record: &mut Record) {
+    fn convert(&self, mut record: Record) -> Option<Result<Record, String>> {
         let record_tag = record.tag;
-        if !self.is_valid_record(record) {
-            eprintln!("error: blank record '{record_tag}'");
-            eprintln!();
-            eprintln!("To allow records with no fields, use --allow-blank-records");
-            exit(1);
+        if !self.allow_blank_records && self.is_blank_record(&record) {
+            return Some(Err(
+                "error: blank record '{record_tag}'\n\nTo allow records with no fields, use --allow-blank-records".into()
+            ));
         }
+        if !self.records_filter(record_tag) { return None; }
         let mut prev_tag = META;
         record.fields.drain_filter(|&mut (field_tag, ref mut field)| {
             let remove = if !self.fields_filter(record_tag, prev_tag, field_tag) {
@@ -89,12 +90,17 @@ impl Options {
         if !self.fields_filter(record_tag, META, META) {
             record.flags = RecordFlags::empty();
         }
+        if !self.allow_blank_records && self.is_blank_record(&record) {
+            None
+        } else {
+            Some(Ok(record))
+        }
     }
 }
 
 fn parse_tag(value: &str) -> Tag {
     Tag::from_str(value).unwrap_or_else(|()| {
-        eprintln!("error: invalid tag {value:?}");
+        eprintln!("Error: invalid tag {value:?}");
         exit(1);
     })
 }
@@ -129,7 +135,7 @@ fn parse_field_conds(args: &ArgMatches, name: &'static str) -> Vec<(Option<Tag>,
     if let Some(values) = args.get_many::<String>(name) {
         for value in values {
             let field_cond = parse_field_cond(value).unwrap_or_else(|()| {
-                eprintln!("error: invalid FIELD_COND {value:?}");
+                eprintln!("Error: invalid FIELD_COND {value:?}");
                 eprintln!();
                 eprintln!("For more information try --help");
                 exit(1);
@@ -389,12 +395,25 @@ fn get_output_name(input_name: &Path, disassemble: bool) -> Result<PathBuf, Stri
     }
 }
 
-fn display(out: bool, path: Option<&Path>) -> String {
-    if let Some(path) = path {
-        format!("{}", path.display())
-    } else {
-        if out { "<stdout>" } else { "<stdin>" }.into()
+struct FileArg<'a> {
+    out: bool,
+    path: Option<&'a Path>,
+}
+
+impl<'a> Display for FileArg<'a> {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        if let Some(path) = self.path {
+            write!(f, "{}", path.display())
+        } else if self.out {
+            write!(f, "<stdout>")
+        } else {
+            write!(f, "<stdin>")
+        }
     }
+}
+
+fn file_err<E: Display>(out: bool, path: Option<&Path>, e: E) -> String {
+    format!("{}: {}", FileArg { out, path }, e)
 }
 
 fn convert_file(input_name: Option<&Path>, options: &Options) -> Result<(), String> {
@@ -405,16 +424,20 @@ fn convert_file(input_name: Option<&Path>, options: &Options) -> Result<(), Stri
         None
     };
     if options.verbose {
-        eprintln!("{} -> {}", display(false, input_name), display(true, output_name.as_deref()));
+        eprintln!(
+            "{} -> {}",
+            FileArg { out: false, path: input_name },
+            FileArg { out: true, path: output_name.as_deref() }
+        );
     }
     let mut temp_name = None;
     let res = if let Err(e) = convert_records(input_name, output_name.as_deref(), options, &mut temp_name) {
         Err(e)
     } else {
         if let Some(temp_name) = &temp_name {
-            let output_name = output_name.unwrap();
-            let output_name = output_name.as_path();
-            rename(temp_name, output_name).map_err(|e| format!("{}: {}", output_name.display(), e))
+            let output_file = output_name.as_ref().unwrap();
+            let output_file = output_file.as_path();
+            rename(temp_name, output_file).map_err(|e| file_err(true, output_name.as_deref(), e))
         } else {
             Ok(())
         }
@@ -427,8 +450,8 @@ fn convert_file(input_name: Option<&Path>, options: &Options) -> Result<(), Stri
         }
         Err(e)
     } else if options.keep == Some(false) {
-        let input_name = input_name.unwrap();
-        remove_file(input_name).map_err(|e| format!("{}: {}", input_name.display(), e))
+        let input_file = input_name.unwrap();
+        remove_file(input_file).map_err(|e| file_err(false, input_name, e))
     } else {
         Ok(())
     }
@@ -472,17 +495,21 @@ fn format_record_yaml(s: &str, newline: &str) -> String {
     res
 }
 
-fn convert_records(input_name: Option<&Path>, output_name: Option<&Path>, options: &Options, temp_name: &mut Option<PathBuf>)
-    -> Result<(), String> {
-    
+fn convert_records(
+    input_name: Option<&Path>,
+    output_name: Option<&Path>,
+    options: &Options,
+    temp_name: &mut Option<PathBuf>
+) -> Result<(), String> {
     let stdin = stdin();
     let stdout = stdout();
     let (mut input, mut output): (Box<dyn BufRead>, Box<dyn Write>) =
         if let Some(input_name) = input_name {
-            let input = Box::new(BufReader::new(File::open(input_name).map_err(|e| format!("{}: {}", input_name.display(), e))?));
+            let input = Box::new(BufReader::new(File::open(input_name).map_err(|e| file_err(false, Some(input_name), e))?));
             if let Some(output_name) = output_name {
                 let temp = input_name.with_file_name(OsString::from(format!("{}", Uuid::new_v4().simple())));
-                let output = Box::new(BufWriter::new(File::create(&temp).map_err(|e| format!("{}: {}", output_name.display(), e))?));
+                let output =
+                    Box::new(BufWriter::new(File::create(&temp).map_err(|e| file_err(true, Some(output_name), e))?));
                 temp_name.replace(temp);
                 (input, output)
             } else {
@@ -497,37 +524,39 @@ fn convert_records(input_name: Option<&Path>, output_name: Option<&Path>, option
             options.code_page,
             if options.fit { RecordReadMode::Lenient } else { RecordReadMode::Strict }, 0, &mut input
         );
-        let records = records.filter(|record| match record {
-            Ok(record) => options.records_filter(record.tag),
-            Err(_) => true,
+        let records = records.filter_map(|record| match record {
+            Ok(record) => options.convert(record),
+            Err(e) => Some(Err(file_err(false, input_name, e))),
         });
         for (is_first, record) in records.identify_first() {
             match record {
-                Err(e) => return Err(format!("{}: {}", display(false, input_name), e)),
-                Ok(mut record) => {
-                    options.convert(&mut record);
+                Err(e) => return Err(file_err(false, input_name, e)),
+                Ok(record) => {
                     let record = serde_yaml::to_string(&record).unwrap();
-                    if !is_first { write!(output, "{newline}").map_err(|e| format!("{e}"))?; }
-                    write!(output, "{}", format_record_yaml(&record, newline)).map_err(|e| format!("{e}"))?;
+                    if !is_first { write!(output, "{newline}").map_err(|e| file_err(true, output_name, e))?; }
+                    write!(output, "{}", format_record_yaml(&record, newline)).map_err(|e| file_err(true, output_name, e))?;
                 }
             }
         }
     } else {
-        fn assembly_record(lines: &str, output: &mut dyn Write, options: &Options) -> Result<(), String> {
-            let records: Vec<Record> = serde_yaml::from_str(lines).map_err(|e| format!("{e}"))?;
-            for mut record in records.into_iter().filter(|x| options.records_filter(x.tag)) {
-                options.convert(&mut record);
-                serialize_into(&record, output, options.code_page, false).map_err(|e| format!("{e}"))?;
+        let mut assembly_record = |lines: &str| {
+            let records: Vec<Record> = serde_yaml::from_str(lines).map_err(|e| file_err(false, input_name, e))?;
+            for record in records.into_iter().filter_map(|x| options.convert(x)) {
+                match record {
+                    Err(e) => return Err(file_err(false, input_name, e)),
+                    Ok(record) =>
+                        serialize_into(&record, &mut output, options.code_page, false).map_err(|e| file_err(true, output_name, e))?
+                }
             }
             Ok(())
-        }
+        };
         let mut lines = String::with_capacity(128);
         for line in input.lines() {
             match line {
-                Err(e) => return Err(format!("{}: {}", display(false, input_name), e)),
+                Err(e) => return Err(file_err(false, input_name, e)),
                 Ok(line) => {
                     if line.starts_with('-') && !lines.is_empty() {
-                        assembly_record(&lines, &mut output, options)?;
+                        assembly_record(&lines)?;
                         lines.clear();
                     }
                     lines += &line;
@@ -536,7 +565,7 @@ fn convert_records(input_name: Option<&Path>, output_name: Option<&Path>, option
             }
         }
         if !lines.is_empty() {
-            assembly_record(&lines, &mut output, options)?;
+            assembly_record(&lines)?;
         }
     }
     Ok(())
