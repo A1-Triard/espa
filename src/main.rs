@@ -457,10 +457,14 @@ fn convert_records(input_name: Option<&Path>, output_name: Option<&Path>, option
             options.code_page,
             if options.fit { RecordReadMode::Lenient } else { RecordReadMode::Strict }, 0, &mut input
         );
+        let records = records.filter(|record| match record {
+            Ok(record) => !options.skip_record(record.tag),
+            Err(_) => true,
+        });
         for (is_first, record) in records.identify_first() {
             match record {
                 Err(e) => return Err(format!("{}: {}", display(false, input_name), e)),
-                Ok(mut record) => if !options.skip_record(record.tag) {
+                Ok(mut record) => {
                     options.convert(&mut record);
                     let record = serde_yaml::to_string(&record).unwrap();
                     if !is_first { write!(output, "{newline}").map_err(|e| format!("{e}"))?; }
