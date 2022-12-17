@@ -10,7 +10,6 @@
 
 use clap::{Arg, ArgAction, ArgMatches, Command, value_parser};
 use clap::builder::PossibleValuesParser;
-use either::{Either, Left, Right};
 use esl::*;
 use esl::code::*;
 use esl::read::*;
@@ -34,6 +33,7 @@ const DEFAULT_NEWLINE: &str = "dos";
 const DEFAULT_NEWLINE: &str = "unix";
 
 struct Options {
+    allow_blank_records: bool,
     exclude_records: Vec<Tag>,
     exclude_fields: Vec<(Option<Tag>, Option<Tag>, Tag)>,
     include_records: Vec<Tag>,
@@ -46,83 +46,98 @@ struct Options {
 }
 
 impl Options {
-    fn skip_record(&self, record_tag: Tag) -> bool {
-        (!self.include_records.is_empty() && !self.include_records.contains(&record_tag)) ||
-        self.exclude_records.contains(&record_tag)
+    fn is_valid_record(&self, record: &Record) -> bool {
+        self.allow_blank_records || !record.flags.is_empty() || !record.fields.is_empty()
     }
 
-    fn skip_field(&self, record_tag: Tag, prev_tag: Tag, field_tag: Tag) -> bool {
-        let predicate = |(r, p, f): &(Option<Tag>, Option<Tag>, Tag)|
-            *f == field_tag && p.as_ref().map_or(true, |&p| p == prev_tag) && r.as_ref().map_or(true, |&r| r == record_tag)
-        ;
-        (!self.include_fields.is_empty() && !self.include_fields.iter().any(predicate)) ||
-        self.exclude_fields.iter().any(predicate)
+    fn records_filter(&self, record_tag: Tag) -> bool {
+        (self.include_records.is_empty() || self.include_records.contains(&record_tag))
+            && !self.exclude_records.contains(&record_tag)
     }
-    
+
+    fn fields_filter(&self, record_tag: Tag, prev_tag: Tag, field_tag: Tag) -> bool {
+        let predicate = |&(ref r, ref p, f): &(Option<Tag>, Option<Tag>, Tag)| {
+            f == field_tag
+                && p.as_ref().map_or(true, |&p| p == prev_tag)
+                && r.as_ref().map_or(true, |&r| r == record_tag)
+        };
+        (self.include_fields.is_empty() || self.include_fields.iter().any(predicate))
+            && !self.exclude_fields.iter().any(predicate)
+    }
+
     fn convert(&self, record: &mut Record) {
         let record_tag = record.tag;
+        if !self.is_valid_record(record) {
+            eprintln!("error: blank record '{record_tag}'");
+            eprintln!();
+            eprintln!("To allow records with no fields, use --allow-blank-records");
+            exit(1);
+        }
         let mut prev_tag = META;
-        record.fields.drain_filter(|(field_tag, field)| {
-            let res = if self.skip_field(record_tag, prev_tag, *field_tag) {
+        record.fields.drain_filter(|&mut (field_tag, ref mut field)| {
+            let remove = if !self.fields_filter(record_tag, prev_tag, field_tag) {
                 true
             } else {
                 if self.fit {
-                    field.fit(record_tag, prev_tag, *field_tag);
+                    field.fit(record_tag, prev_tag, field_tag);
                 }
                 false
             };
-            prev_tag = *field_tag;
-            res
+            prev_tag = field_tag;
+            remove
         });
+        if !self.fields_filter(record_tag, META, META) {
+            record.flags = RecordFlags::empty();
+        }
     }
 }
 
-fn parse_tag(value: &str) -> Result<Option<Tag>, String> {
-    Ok(if value.is_empty() {
-        None
-    } else {
-        Some(Tag::from_str(value).map_err(|()| format!("invalid tag {value:?}"))?)
+fn parse_tag(value: &str) -> Tag {
+    Tag::from_str(value).unwrap_or_else(|()| {
+        eprintln!("error: invalid tag {value:?}");
+        exit(1);
     })
 }
 
-fn parse_cond(value: &str) -> Result<Either<Tag, (Option<Tag>, Option<Tag>, Tag)>, String> {
+fn parse_record_tags(args: &ArgMatches, name: &'static str) -> Vec<Tag> {
+    let mut records = Vec::new();
+    if let Some(values) = args.get_many::<String>(name) {
+        for value in values {
+            records.push(parse_tag(value));
+        }
+    }
+    records
+}
+
+fn parse_field_cond(value: &str) -> Result<(Option<Tag>, Option<Tag>, Tag), ()> {
     let mut tags = value.split(':');
-    let record_tag = tags.next().ok_or_else(|| format!("invalid COND {value:?}"))?;
-    let (prev_tag, field_tag) = if let Some(prev_tag) = tags.next() {
-        let field_tag = tags.next().ok_or_else(|| format!("invalid COND {value:?}"))?;
-        if tags.next().is_some() { return Err(format!("invalid COND {value:?}")); }
-        (prev_tag, field_tag)
+    let a = tags.next().ok_or(())?;
+    if let Some(b) = tags.next() {
+        let c = tags.next().ok_or(())?;
+        if tags.next().is_some() { return Err(()); }
+        let record_tag = if a.is_empty() { None } else { Some(parse_tag(a)) };
+        let prev_tag = if b.is_empty() { None } else { Some(parse_tag(b)) };
+        let field_tag = parse_tag(c);
+        Ok((record_tag, prev_tag, field_tag))
     } else {
-        ("", "")
-    };
-    let record_tag = parse_tag(record_tag)?;
-    let prev_tag = parse_tag(prev_tag)?;
-    let field_tag = parse_tag(field_tag)?;
-    if let Some(field_tag) = field_tag {
-        Ok(Right((record_tag, prev_tag, field_tag)))
-    } else {
-        let record_tag = record_tag.ok_or_else(|| format!("invalid COND {value:?}"))?;
-        if prev_tag.is_some() { return Err(format!("invalid COND {value:?}")); }
-        Ok(Left(record_tag))
+        Ok((None, None, parse_tag(a)))
     }
 }
 
-fn parse_conds(args: &ArgMatches, name: &'static str) -> (Vec<Tag>, Vec<(Option<Tag>, Option<Tag>, Tag)>) {
-    let mut records = Vec::new();
+fn parse_field_conds(args: &ArgMatches, name: &'static str) -> Vec<(Option<Tag>, Option<Tag>, Tag)> {
     let mut fields = Vec::new();
     if let Some(values) = args.get_many::<String>(name) {
         for value in values {
-            match parse_cond(value) {
-                Ok(Left(record_tag)) => records.push(record_tag),
-                Ok(Right(field_cond)) => fields.push(field_cond),
-                Err(e) => {
-                    eprintln!("error: {e}\n\nFor more information try --help");
-                    exit(1);
-                }
-            }
+            let field_cond = parse_field_cond(value).unwrap_or_else(|()| {
+                eprintln!("error: invalid FIELD_COND {value:?}");
+                eprintln!();
+                eprintln!("For more information try --help");
+                exit(1);
+            });
+            fields.push(field_cond);
         }
     }
-    (records, fields)
+    fields
 }
 
 const HYPHEN: &OsStr = unsafe { transmute("-") };
@@ -138,12 +153,12 @@ fn parse_args() -> (Options, Vec<Option<PathBuf>>) {
         .disable_colored_help(true)
         .help_template("Usage: {usage}\n\n{about}\n\n{options}{after-help}")
         .after_help(indoc!("
-            <COND> can be in one of the following forms:
-                RECORD_TAG
-                RECORD_TAG::FIELD_TAG
-                ::FIELD_TAG
+            <FIELD_COND> can be in one of the following forms:
+                FIELD_TAG
                 RECORD_TAG:PREV_TAG:FIELD_TAG
+                RECORD_TAG::FIELD_TAG
                 :PREV_TAG:FIELD_TAG
+                ::FIELD_TAG
 
             When FILE is -, read standard input.
 
@@ -186,19 +201,41 @@ fn parse_args() -> (Options, Vec<Option<PathBuf>>) {
             .help("display the version number and exit")
             .action(ArgAction::SetTrue)
         )
-        .arg(Arg::new("exclude")
-            .short('e')
-            .long("exclude")
+        .arg(Arg::new("exclude_record")
+            .short('E')
+            .long("exclude-record")
             .action(ArgAction::Append)
-            .value_name("COND")
-            .help("skip specified records/fields")
+            .value_name("RECORD_TAG")
+            .help("skip specified records")
         )
-        .arg(Arg::new("include")
-            .short('i')
-            .long("include")
+        .arg(Arg::new("include_record")
+            .short('I')
+            .long("include-record")
             .action(ArgAction::Append)
-            .value_name("COND")
-            .help("skip all but specified records/fields")
+            .value_name("RECORD_TAG")
+            .help("skip all but specified records")
+        )
+        .arg(Arg::new("exclude_fields")
+            .short('e')
+            .long("exclude-fields")
+            .action(ArgAction::Append)
+            .value_name("FIELD_COND")
+            .help("skip specified fields")
+        )
+        .arg(Arg::new("include_fields")
+            .short('i')
+            .long("include-fields")
+            .action(ArgAction::Append)
+            .value_name("FIELD_COND")
+            .help("skip all but specified fields")
+        )
+        .arg(Arg::new("allow_blank_records")
+            .short('b')
+            .long("allow-blank-records")
+            .action(ArgAction::SetTrue)
+            .conflicts_with("exclude_fields")
+            .conflicts_with("include_fields")
+            .help("allow records with no fields")
         )
         .arg(Arg::new("code_page")
             .short('p')
@@ -271,10 +308,13 @@ fn parse_args() -> (Options, Vec<Option<PathBuf>>) {
         "un" => CodePage::Unicode,
         _ => unreachable!()
     };
-    let (exclude_records, exclude_fields) = parse_conds(&args, "exclude");
-    let (include_records, include_fields) = parse_conds(&args, "include");
+    let allow_blank_records = *args.get_one("allow_blank_records").unwrap();
+    let exclude_records = parse_record_tags(&args, "exclude_records");
+    let include_records = parse_record_tags(&args, "include_records");
+    let exclude_fields = parse_field_conds(&args, "exclude_fields");
+    let include_fields = parse_field_conds(&args, "include_fields");
     (Options {
-        fit, keep, disassemble, verbose, code_page,
+        fit, keep, disassemble, verbose, code_page, allow_blank_records,
         exclude_records, exclude_fields, include_records, include_fields
     },
         files
@@ -458,7 +498,7 @@ fn convert_records(input_name: Option<&Path>, output_name: Option<&Path>, option
             if options.fit { RecordReadMode::Lenient } else { RecordReadMode::Strict }, 0, &mut input
         );
         let records = records.filter(|record| match record {
-            Ok(record) => !options.skip_record(record.tag),
+            Ok(record) => options.records_filter(record.tag),
             Err(_) => true,
         });
         for (is_first, record) in records.identify_first() {
@@ -475,7 +515,7 @@ fn convert_records(input_name: Option<&Path>, output_name: Option<&Path>, option
     } else {
         fn assembly_record(lines: &str, output: &mut dyn Write, options: &Options) -> Result<(), String> {
             let records: Vec<Record> = serde_yaml::from_str(lines).map_err(|e| format!("{e}"))?;
-            for mut record in records.into_iter().filter(|x| !options.skip_record(x.tag)) {
+            for mut record in records.into_iter().filter(|x| options.records_filter(x.tag)) {
                 options.convert(&mut record);
                 serialize_into(&record, output, options.code_page, false).map_err(|e| format!("{e}"))?;
             }

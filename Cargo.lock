@@ -254,7 +254,6 @@ name = "espa"
 version = "0.12.0"
 dependencies = [
  "clap",
- "either",
  "encoding",
  "esl",
  "indoc",
