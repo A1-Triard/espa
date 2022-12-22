@@ -207,6 +207,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "erased-serde"
+version = "0.3.24"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e4ca605381c017ec7a5fef5e548f1cfaa419ed0f6df6367339300db74c92aa7d"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "errno"
 version = "0.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -229,9 +238,9 @@ dependencies = [
 
 [[package]]
 name = "esl"
-version = "0.17.0"
+version = "0.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6d61b9d13d87a8844a32d413e1435629522a65b5dcc73a132b21cb3adfd0d089"
+checksum = "805b3d81951cf172870e5362a5d8fe4eeba0a0ce9bca6113b4dfb28b4d6296d0"
 dependencies = [
  "base64",
  "bitflags",
@@ -250,12 +259,13 @@ dependencies = [
  "phantom-type",
  "serde",
  "serde-serialize-seed",
+ "serde_tagged",
  "utf8-chars",
 ]
 
 [[package]]
 name = "espa"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "clap",
  "encoding",
@@ -357,9 +367,9 @@ checksum = "fad582f4b9e86b6caa621cabeb0963332d92eea04729ab12892c2533951e6440"
 
 [[package]]
 name = "libc"
-version = "0.2.138"
+version = "0.2.139"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "db6d7e329c562c5dfab7a46a2afabc8b987ab9a4834c9d1ca04dc54c1546cef8"
+checksum = "201de327520df007757c1f0adce6e827fe8562fbc28bfd9c15571c66ca1f5f79"
 
 [[package]]
 name = "linux-raw-sys"
@@ -569,6 +579,16 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "serde_tagged"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "80063380ba57fb0d1590e13062cdb90172918a56f3b99e2cb435f629b7c8347f"
+dependencies = [
+ "erased-serde",
+ "serde",
 ]
 
 [[package]]
