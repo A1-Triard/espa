@@ -11,11 +11,13 @@
 use clap::{Arg, ArgAction, ArgMatches, Command, value_parser};
 use clap::builder::PossibleValuesParser;
 use esl::*;
-use esl::code::*;
+use esl::code::{self};
 use esl::read::*;
 use indoc::indoc;
 use iter_identify_first_last::IteratorIdentifyFirstLastExt;
 use regex::Regex;
+use serde::de::DeserializeSeed;
+use serde_serialize_seed::{ValueWithSeed, VecSerde};
 use std::env::current_exe;
 use std::ffi::{OsStr, OsString};
 use std::fmt::{self, Display, Formatter};
@@ -207,16 +209,16 @@ fn parse_args() -> (Options, Vec<Option<PathBuf>>) {
             .help("display the version number and exit")
             .action(ArgAction::SetTrue)
         )
-        .arg(Arg::new("exclude_record")
+        .arg(Arg::new("exclude_records")
             .short('E')
-            .long("exclude-record")
+            .long("exclude-records")
             .action(ArgAction::Append)
             .value_name("RECORD_TAG")
             .help("skip specified records")
         )
-        .arg(Arg::new("include_record")
+        .arg(Arg::new("include_records")
             .short('I')
-            .long("include-record")
+            .long("include-records")
             .action(ArgAction::Append)
             .value_name("RECORD_TAG")
             .help("skip all but specified records")
@@ -532,7 +534,7 @@ fn convert_records(
             match record {
                 Err(e) => return Err(file_err(false, input_name, e)),
                 Ok(record) => {
-                    let record = serde_yaml::to_string(&record).unwrap();
+                    let record = serde_yaml::to_string(&ValueWithSeed(&record, RecordSerde { code_page: None })).unwrap();
                     if !is_first { write!(output, "{newline}").map_err(|e| file_err(true, output_name, e))?; }
                     write!(output, "{}", format_record_yaml(&record, newline)).map_err(|e| file_err(true, output_name, e))?;
                 }
@@ -540,12 +542,16 @@ fn convert_records(
         }
     } else {
         let mut assembly_record = |lines: &str| {
-            let records: Vec<Record> = serde_yaml::from_str(lines).map_err(|e| file_err(false, input_name, e))?;
+            let records = serde_yaml::Deserializer::from_str(lines);
+            let records = VecSerde(RecordSerde { code_page: None }).deserialize(records)
+                .map_err(|e| file_err(false, input_name, e))?;
             for record in records.into_iter().filter_map(|x| options.convert(x)) {
                 match record {
                     Err(e) => return Err(file_err(false, input_name, e)),
                     Ok(record) =>
-                        serialize_into(&record, &mut output, options.code_page, false).map_err(|e| file_err(true, output_name, e))?
+                        code::serialize_into(
+                            &ValueWithSeed(&record, RecordSerde { code_page: Some(options.code_page) }), &mut output, false
+                        ).map_err(|e| file_err(true, output_name, e))?
                 }
             }
             Ok(())
