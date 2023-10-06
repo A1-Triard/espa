@@ -1,5 +1,4 @@
-#![feature(drain_filter)]
-#![feature(once_cell)]
+#![feature(lazy_cell)]
 
 #![deny(warnings)]
 #![allow(clippy::collapsible_else_if)]
@@ -77,18 +76,18 @@ impl Options {
         }
         if !self.records_filter(record_tag) { return None; }
         let mut prev_tag = META;
-        record.fields.drain_filter(|&mut (field_tag, ref mut field)| {
-            let remove = if !self.fields_filter(record_tag, prev_tag, field_tag) {
-                true
-            } else {
-                if self.fit {
-                    field.fit(record_tag, prev_tag, field_tag);
-                }
-                false
-            };
+        record.fields.retain(|&(field_tag, _)| {
+            let keep = self.fields_filter(record_tag, prev_tag, field_tag);
             prev_tag = field_tag;
-            remove
+            keep
         });
+        if self.fit {
+            let mut prev_tag = META;
+            for &mut (field_tag, ref mut field) in &mut record.fields {
+                field.fit(record_tag, prev_tag, field_tag);
+                prev_tag = field_tag;
+            }
+        }
         if !self.fields_filter(record_tag, META, META) {
             record.flags = RecordFlags::empty();
         }
