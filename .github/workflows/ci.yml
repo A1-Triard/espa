@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macOS-latest]
+        os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions-rs/toolchain@v1
@@ -28,5 +28,9 @@ jobs:
     - run: "cargo build --verbose"
     - run: "cargo test --verbose"
     - run: "cargo build --verbose --release"
+    - name: remove Cargo.lock
+      uses: JesseTG/rm@v1.0.3
+      with:
+        path: Cargo.lock
     - run: "cargo outdated --verbose --root-deps-only --exit-code 1"
     - run: "cargo clippy --verbose"

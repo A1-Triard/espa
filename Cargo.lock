@@ -149,18 +149,6 @@ dependencies = [
 
 [[package]]
 name = "educe"
-version = "0.5.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e4bd92664bf78c4d3dba9b7cdafce6fa15b13ed3ed16175218196942e99168a8"
-dependencies = [
- "enum-ordinalize",
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
-name = "educe"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1d7bc049e1bd8cdeb31b68bbd586a9464ecf9f3944af3958a7a9d0f8b9799417"
@@ -302,14 +290,14 @@ dependencies = [
 
 [[package]]
 name = "esl"
-version = "0.19.0"
+version = "0.19.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cecfe9ab30b573563445e0d2e90fb8c7fdf3be65b508634741583965665a3256"
+checksum = "5a94a17604056d5267f7a1e24a500b4aa22ed19b027e6a63e7c4c50bc9a70347"
 dependencies = [
  "base64",
  "bitflags",
  "byteorder",
- "educe 0.5.11",
+ "educe",
  "either",
  "encoding",
  "enum-derive-2018",
@@ -329,7 +317,7 @@ dependencies = [
 
 [[package]]
 name = "espa"
-version = "0.16.0"
+version = "0.16.1"
 dependencies = [
  "clap",
  "encoding",
@@ -485,7 +473,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "19b80a8d2c9184208c4f27a58f7f7f5d1f18ab76d28d9e38c0860aa513323f81"
 dependencies = [
  "document-features",
- "educe 0.6.0",
+ "educe",
 ]
 
 [[package]]
