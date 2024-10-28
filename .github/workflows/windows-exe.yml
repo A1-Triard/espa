@@ -11,12 +11,20 @@ jobs:
       fail-fast: false
     runs-on: "windows-latest"
     steps:
+    - uses: suisei-cn/actions-download-file@818d6b7dc8fe73f2f924b6241f2b1134ca1377d9 # 1.6.0
+      with:
+        url: "https://github.com/brechtsanders/winlibs_mingw/releases/download/14.2.0posix-19.1.1-12.0.0-ucrt-r2/winlibs-i686-posix-dwarf-gcc-14.2.0-llvm-19.1.1-mingw-w64ucrt-12.0.0-r2.zip"
+        target: mingw
     - uses: actions-rs/toolchain@v1
       with:
         toolchain: nightly
         override: true
     - run: "rustup target add i686-pc-windows-gnu"
     - uses: actions/checkout@v2
+    - uses: ihiroky/extract-action@v1
+      with:
+        file_path: ..\mingw\winlibs-i686-posix-dwarf-gcc-14.2.0-llvm-19.1.1-mingw-w64ucrt-12.0.0-r2.zip
+        extract_dir: .
     - run: "cargo build --verbose --target=i686-pc-windows-gnu --release"
     - uses: actions/upload-artifact@v3
       with:
