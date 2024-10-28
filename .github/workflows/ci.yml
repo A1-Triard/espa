@@ -28,5 +28,5 @@ jobs:
     - run: "cargo build --verbose"
     - run: "cargo test --verbose"
     - run: "cargo build --verbose --release"
-    - run: "cargo outdated --verbose --aggresssive --root-deps-only --exit-code 1"
+    - run: "cargo outdated --verbose --root-deps-only --exit-code 1"
     - run: "cargo clippy --verbose"

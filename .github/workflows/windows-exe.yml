@@ -11,9 +11,6 @@ jobs:
       fail-fast: false
     runs-on: "windows-latest"
     steps:
-    - uses: egor-tensin/setup-mingw@v2
-      with:
-        platform: x86
     - uses: actions-rs/toolchain@v1
       with:
         toolchain: nightly
