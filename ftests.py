@@ -22,10 +22,10 @@ def test(name, ext, code_page, lenient=False):
     source = '{}.fit.{}'.format(name, ext)
   else:
     source = '{}.{}'.format(name, ext)
-  check_call(['cargo', 'run', '--release', '--', '-p', code_page, '-kvd',
+  check_call(['cargo', 'run', '--release', '--', '-p', code_page, '-kvdo' if ext == 'omwsave' else '-kvd',
               source], stdout=stdout, stderr=stderr)
   rename('{}.yaml'.format(source), '{}.test.{}.yaml'.format(name, ext))
-  check_call(['cargo', 'run', '--release', '--', '-p', code_page, '-kv',
+  check_call(['cargo', 'run', '--release', '--', '-p', code_page, '-kvo' if ext == 'omwsave' else '-kv',
               '{}.test.{}.yaml'.format(name, ext)], stdout=stdout, stderr=stderr)
   if not cmp(source, '{}.test.{}'.format(name, ext)):
     exit(1)
@@ -73,6 +73,13 @@ if not path.exists('Saves/164.omwsave'):
   with open('Saves/164.omwsave', 'wb') as f:
     f.write(content)
 
+if not path.exists('Saves/test.omwsave'):
+  with lzma.open('Saves/test.omwsave.xz') as f:
+    content = f.read()
+  with open('Saves/test.omwsave', 'wb') as f:
+    f.write(content)
+
+test('Saves/test', 'omwsave', 'un')
 test('Saves/164', 'omwsave', 'un')
 test('Saves/Quicksave', 'omwsave', 'un')
 test('Saves/Alchemy0000', 'ess', 'ru')

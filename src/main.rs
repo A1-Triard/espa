@@ -1,5 +1,3 @@
-#![feature(lazy_cell)]
-
 #![deny(warnings)]
 #![allow(clippy::collapsible_else_if)]
 #![allow(clippy::collapsible_if)]
@@ -45,6 +43,7 @@ struct Options {
     disassemble: Option<&'static str>,
     verbose: bool,
     code_page: CodePage,
+    omwsave: bool,
 }
 
 impl Options {
@@ -67,11 +66,11 @@ impl Options {
             && !self.exclude_fields.iter().any(predicate)
     }
 
-    fn convert(&self, mut record: Record) -> Option<Result<Record, String>> {
+    fn convert(&self, mut record: Record, omwsave: bool) -> Option<Result<Record, String>> {
         let record_tag = record.tag;
         if !self.allow_blank_records && self.is_blank_record(&record) {
             return Some(Err(
-                "error: blank record '{record_tag}'\n\nTo allow records with no fields, use --allow-blank-records".into()
+                format!("error: blank record '{record_tag}'\n\nTo allow records with no fields, use --allow-blank-records")
             ));
         }
         if !self.records_filter(record_tag) { return None; }
@@ -84,7 +83,7 @@ impl Options {
         if self.fit {
             let mut prev_tag = META;
             for &mut (field_tag, ref mut field) in &mut record.fields {
-                field.fit(record_tag, prev_tag, field_tag);
+                field.fit(record_tag, prev_tag, field_tag, omwsave);
                 prev_tag = field_tag;
             }
         }
@@ -201,6 +200,12 @@ fn parse_args() -> (Options, Vec<Option<PathBuf>>) {
             .help("remove redundant trailing zeros and other garbage")
             .action(ArgAction::SetTrue)
         )
+        .arg(Arg::new("omwsave")
+            .short('o')
+            .long("omwsave")
+            .help("use .omwsave format")
+            .action(ArgAction::SetTrue)
+        )
         .disable_version_flag(true)
         .arg(Arg::new("version")
             .short('V')
@@ -308,6 +313,7 @@ fn parse_args() -> (Options, Vec<Option<PathBuf>>) {
     } else {
         None
     };
+    let omwsave = *args.get_one("omwsave").unwrap();
     let verbose = *args.get_one("verbose").unwrap();
     let code_page = match args.get_one::<String>("code_page").unwrap().as_ref() {
         "en" => CodePage::English,
@@ -322,7 +328,8 @@ fn parse_args() -> (Options, Vec<Option<PathBuf>>) {
     let include_fields = parse_field_conds(&args, "include_fields");
     (Options {
         fit, keep, disassemble, verbose, code_page, allow_blank_records,
-        exclude_records, exclude_fields, include_records, include_fields
+        exclude_records, exclude_fields, include_records, include_fields,
+        omwsave,
     },
         files
     )
@@ -523,17 +530,17 @@ fn convert_records(
     if let Some(newline) = options.disassemble {
         let records = Records::new(
             options.code_page,
-            if options.fit { RecordReadMode::Lenient } else { RecordReadMode::Strict }, 0, &mut input
+            if options.fit { RecordReadMode::Lenient } else { RecordReadMode::Strict }, options.omwsave, 0, &mut input
         );
         let records = records.filter_map(|record| match record {
-            Ok(record) => options.convert(record),
+            Ok(record) => options.convert(record, options.omwsave),
             Err(e) => Some(Err(file_err(false, input_name, e))),
         });
         for (is_first, record) in records.identify_first() {
             match record {
                 Err(e) => return Err(file_err(false, input_name, e)),
                 Ok(record) => {
-                    let record = serde_yaml::to_string(&ValueWithSeed(&record, RecordSerde { code_page: None })).unwrap();
+                    let record = serde_yaml::to_string(&ValueWithSeed(&record, RecordSerde { code_page: None, omwsave: options.omwsave })).unwrap();
                     if !is_first { write!(output, "{newline}").map_err(|e| file_err(true, output_name, e))?; }
                     write!(output, "{}", format_record_yaml(&record, newline)).map_err(|e| file_err(true, output_name, e))?;
                 }
@@ -542,14 +549,14 @@ fn convert_records(
     } else {
         let mut assembly_record = |lines: &str| {
             let records = serde_yaml::Deserializer::from_str(lines);
-            let records = VecSerde(RecordSerde { code_page: None }).deserialize(records)
+            let records = VecSerde(RecordSerde { code_page: None, omwsave: options.omwsave }).deserialize(records)
                 .map_err(|e| file_err(false, input_name, e))?;
-            for record in records.into_iter().filter_map(|x| options.convert(x)) {
+            for record in records.into_iter().filter_map(|x| options.convert(x, options.omwsave)) {
                 match record {
                     Err(e) => return Err(file_err(false, input_name, e)),
                     Ok(record) =>
                         code::serialize_into(
-                            &ValueWithSeed(&record, RecordSerde { code_page: Some(options.code_page) }), &mut output, false
+                            &ValueWithSeed(&record, RecordSerde { code_page: Some(options.code_page), omwsave: options.omwsave }), &mut output, false
                         ).map_err(|e| file_err(true, output_name, e))?
                 }
             }
