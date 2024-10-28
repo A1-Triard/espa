@@ -1,6 +1,7 @@
 #![deny(warnings)]
 #![allow(clippy::collapsible_else_if)]
 #![allow(clippy::collapsible_if)]
+#![allow(clippy::needless_lifetimes)]
 #![allow(clippy::question_mark)]
 #![allow(clippy::transmute_ptr_to_ptr)]
 #![allow(clippy::type_complexity)]
@@ -350,13 +351,13 @@ fn main() {
 const YAML_SUFFIX: &OsStr = unsafe { transmute("yaml") };
 const DOT: &OsStr = unsafe { transmute(".") };
 static ESL_SUFFIXES: &[&OsStr] = &[
-    unsafe { transmute("ess") }, 
-    unsafe { transmute("ESS") },
-    unsafe { transmute("esp") },
-    unsafe { transmute("ESP") },
-    unsafe { transmute("esm") },
-    unsafe { transmute("ESM") },
-    unsafe { transmute("omwsave") },
+    unsafe { transmute::<&str, &OsStr>("ess") }, 
+    unsafe { transmute::<&str, &OsStr>("ESS") },
+    unsafe { transmute::<&str, &OsStr>("esp") },
+    unsafe { transmute::<&str, &OsStr>("ESP") },
+    unsafe { transmute::<&str, &OsStr>("esm") },
+    unsafe { transmute::<&str, &OsStr>("ESM") },
+    unsafe { transmute::<&str, &OsStr>("omwsave") },
 ];
 
 fn has_known_file_suffix(file: &Path) -> bool {
@@ -376,9 +377,9 @@ fn get_disassembled_name(input_name: &Path) -> Result<PathBuf, String> {
     }
     let input_file_name = input_name.file_name().unwrap();
     let mut output_file_name: Vec<u8> = Vec::with_capacity(input_file_name.len() + DOT.len() + YAML_SUFFIX.len());
-    output_file_name.extend_from_slice(unsafe { transmute(input_file_name) });
-    output_file_name.extend_from_slice(unsafe { transmute(DOT) });
-    output_file_name.extend_from_slice(unsafe { transmute(YAML_SUFFIX) });
+    output_file_name.extend_from_slice(unsafe { transmute::<&OsStr, &[u8]>(input_file_name) });
+    output_file_name.extend_from_slice(unsafe { transmute::<&OsStr, &[u8]>(DOT) });
+    output_file_name.extend_from_slice(unsafe { transmute::<&OsStr, &[u8]>(YAML_SUFFIX) });
     let output_file_name: &OsStr = unsafe { transmute(&output_file_name[..]) };
     Ok(input_name.with_file_name(output_file_name))
 }
