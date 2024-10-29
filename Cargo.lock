@@ -317,7 +317,7 @@ dependencies = [
 
 [[package]]
 name = "espa"
-version = "0.16.1"
+version = "0.16.2"
 dependencies = [
  "clap",
  "encoding",
