@@ -541,7 +541,7 @@ fn convert_records(
             match record {
                 Err(e) => return Err(file_err(false, input_name, e)),
                 Ok(record) => {
-                    let record = serde_yaml::to_string(&ValueWithSeed(&record, RecordSerde { code_page: None, omwsave: options.omwsave })).unwrap();
+                    let record = yaml_serde::to_string(&ValueWithSeed(&record, RecordSerde { code_page: None, omwsave: options.omwsave })).unwrap();
                     if !is_first { write!(output, "{newline}").map_err(|e| file_err(true, output_name, e))?; }
                     write!(output, "{}", format_record_yaml(&record, newline)).map_err(|e| file_err(true, output_name, e))?;
                 }
@@ -549,7 +549,7 @@ fn convert_records(
         }
     } else {
         let mut assembly_record = |lines: &str| {
-            let records = serde_yaml::Deserializer::from_str(lines);
+            let records = yaml_serde::Deserializer::from_str(lines);
             let records = VecSerde(RecordSerde { code_page: None, omwsave: options.omwsave }).deserialize(records)
                 .map_err(|e| file_err(false, input_name, e))?;
             for record in records.into_iter().filter_map(|x| options.convert(x, options.omwsave)) {
