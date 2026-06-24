@@ -61,27 +61,14 @@ if not path.exists('Data Files/Bloodmoon.esm'):
   print('Put Bloodmoon.esm into test_data/Data Files')
   exit(1)
 
-if not path.exists('Saves/Quicksave.omwsave'):
-  with lzma.open('Saves/Quicksave.omwsave.xz') as f:
+if not path.exists('Saves/Alchemy.omwsave'):
+  with lzma.open('Saves/Alchemy.omwsave.xz') as f:
     content = f.read()
-  with open('Saves/Quicksave.omwsave', 'wb') as f:
+  with open('Saves/Alchemy.omwsave', 'wb') as f:
     f.write(content)
 
-if not path.exists('Saves/164.omwsave'):
-  with lzma.open('Saves/164.omwsave.xz') as f:
-    content = f.read()
-  with open('Saves/164.omwsave', 'wb') as f:
-    f.write(content)
 
-if not path.exists('Saves/test.omwsave'):
-  with lzma.open('Saves/test.omwsave.xz') as f:
-    content = f.read()
-  with open('Saves/test.omwsave', 'wb') as f:
-    f.write(content)
-
-test('Saves/test', 'omwsave', 'un')
-test('Saves/164', 'omwsave', 'un')
-test('Saves/Quicksave', 'omwsave', 'un')
+test('Saves/Alchemy', 'omwsave', 'un')
 test('Saves/Alchemy0000', 'ess', 'ru')
 test('Saves/F0000', 'ess', 'ru')
 test('Data Files/Animal Behaviour', 'esp', 'ru', lenient=True)
